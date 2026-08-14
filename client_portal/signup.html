@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AEGIS - Subscribe</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg:#0b0f14; --panel:#131a22; --border:#223041; --text:#e6edf3;
+    --muted:#8b98a5; --green:#3fb950; --red:#f85149; --yellow:#d29922; --blue:#58a6ff;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width:420px; margin:60px auto; padding:0 20px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:28px; }
+  h2 { margin-top:0; }
+  input { width:100%; padding:11px; margin:8px 0; background:#0d1117; border:1px solid var(--border); color:var(--text); border-radius:6px; }
+  label { font-size:13px; color:var(--muted); display:block; margin-top:16px; }
+  .plan-options, .provider-options { display:flex; gap:8px; margin-top:8px; }
+  .option { flex:1; padding:12px; text-align:center; background:#0d1117; border:1px solid var(--border); border-radius:6px; cursor:pointer; font-size:14px; }
+  .option.selected { border-color:var(--blue); background:rgba(88,166,255,.1); }
+  .btn { padding:12px 18px; background:var(--blue); color:#031; border:none; border-radius:6px; cursor:pointer; font-weight:600; width:100%; margin-top:20px; font-size:15px; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  #error { color:var(--red); font-size:13px; margin-top:10px; }
+  .footer-link { text-align:center; margin-top:16px; font-size:13px; color:var(--muted); }
+  .footer-link a { color:var(--blue); }
+</style>
+</head>
+<body>
+
+<main>
+  <div class="card">
+    <h2>Subscribe to AEGIS</h2>
+
+    <label>Backend URL</label>
+    <input id="apiUrl" placeholder="https://your-backend.example">
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@example.com">
+
+    <label>Plan</label>
+    <div class="plan-options">
+      <div class="option selected" data-plan="monthly" onclick="selectPlan(this)">Monthly</div>
+    </div>
+
+    <label>Payment method</label>
+    <div class="provider-options">
+      <div class="option selected" data-provider="paystack" onclick="selectProvider(this)">Paystack</div>
+      <div class="option" data-provider="flutterwave" onclick="selectProvider(this)">Flutterwave</div>
+      <div class="option" data-provider="stripe" onclick="selectProvider(this)">Stripe</div>
+    </div>
+
+    <button class="btn" id="subscribeBtn" onclick="subscribe()">Continue to Payment</button>
+    <div id="error"></div>
+
+    <div class="footer-link">Already subscribed? <a href="index.html">Sign in</a></div>
+  </div>
+</main>
+
+<script>
+let selectedPlan = 'monthly';
+let selectedProvider = 'paystack';
+
+function selectPlan(el) {
+  document.querySelectorAll('.plan-options .option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedPlan = el.dataset.plan;
+}
+
+function selectProvider(el) {
+  document.querySelectorAll('.provider-options .option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedProvider = el.dataset.provider;
+}
+
+function generateAccountId() {
+  // A random id, not tied to anything personal - this becomes the
+  // subscriber's permanent account_id. crypto.randomUUID() is available
+  // in all modern mobile browsers.
+  return 'aegis-' + crypto.randomUUID();
+}
+
+async function subscribe() {
+  const apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+  const email = document.getElementById('email').value.trim();
+  const errorEl = document.getElementById('error');
+  const btn = document.getElementById('subscribeBtn');
+
+  if (!apiUrl || !email) {
+    errorEl.textContent = 'Fill in the backend URL and your email.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Redirecting...';
+  errorEl.textContent = '';
+
+  const accountId = generateAccountId();
+  // Saved now so success.html can use it even though it also arrives
+  // back via the redirect URL - belt and suspenders in case a provider
+  // strips query params unexpectedly.
+  localStorage.setItem('aegis_pending_account_id', accountId);
+
+  try {
+    const res = await fetch(`${apiUrl}/api/subscriptions/checkout/${selectedProvider}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account_id: accountId, email: email, plan: selectedPlan })
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    localStorage.setItem('aegis_portal_url', apiUrl);  // success.html needs this too
+    window.location.href = data.checkout_url;
+  } catch (e) {
+    errorEl.textContent = 'Could not start checkout: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = 'Continue to Payment';
+  }
+}
+</script>
+</body>
+</html>

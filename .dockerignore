@@ -1,0 +1,12 @@
+.git
+.github
+.gitignore
+.env
+*.pyc
+__pycache__/
+.pytest_cache/
+tests/
+mobile_app/
+*.md
+docker/prometheus_data/
+.DS_Store

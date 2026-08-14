@@ -1,0 +1,43 @@
+# Secrets - never commit these
+.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+venv/
+.venv/
+
+# Local SQLite artifacts (legacy - vault/subscriptions now live in Postgres,
+# but a stray file here would mean someone ran the old code path locally)
+*.db
+
+# Android / Gradle
+mobile_app/.gradle/
+mobile_app/build/
+mobile_app/app/build/
+mobile_app/local.properties
+mobile_app/*.iml
+mobile_app/.idea/
+mobile_app/captures/
+*.apk
+*.aab
+
+# (gradle-wrapper.jar is now committed for real - see mobile_app/README.md
+# changelog. It was excluded here while only a placeholder/missing file
+# existed; a genuine wrapper jar should be committed, not gitignored.)
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+docker/prometheus_data/

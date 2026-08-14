@@ -1,0 +1,144 @@
+version: "3.9"
+
+services:
+
+  aegis-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: aegis-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env   # real secrets - copy .env.example to .env and fill it in. Never commit .env.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/backend/uploads
+      - app-data:/app/backend/data   # holds aegis_vault.db and aegis_subscriptions.db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s   # gives migrations + startup time before healthcheck failures count
+
+  postgres:
+    image: postgres:16
+    container_name: aegis-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: aegis
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres   # override via .env in any non-local environment
+    ports:
+      # Bound to localhost only - reachable from your own machine's DB
+      # tools, not from the public internet. Remove this mapping entirely
+      # in production if you don't need host-level access at all; the API
+      # container reaches Postgres over the internal Docker network
+      # regardless of whether this port is published.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: aegis-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"   # same localhost-only reasoning as postgres above
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: aegis-prometheus
+    restart: always
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus-data:/prometheus
+    depends_on:
+      - aegis-api
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: aegis-grafana
+    restart: always
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin   # change this immediately after first login
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+  loki:
+    image: grafana/loki:latest
+    container_name: aegis-loki
+    restart: always
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: aegis-promtail
+    restart: always
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: aegis-tempo
+    restart: always
+    command: -config.file=/etc/tempo/tempo.yml
+    volumes:
+      - ./tempo.yml:/etc/tempo/tempo.yml
+      - tempo-data:/var/tempo
+    ports:
+      - "127.0.0.1:3200:3200"    # Tempo query API (Grafana reads from this)
+      - "127.0.0.1:4317:4317"    # OTLP gRPC - this is what AEGIS_API exports spans to
+
+# NOTE: MT5 worker processes are NOT run here. They require Windows +
+# the real MT5 terminal (see requirements-worker.txt and
+# backend/app/worker/mt5_worker.py) and are deployed separately on
+# Windows machines/VMs that connect to this same Redis instance.
+
+volumes:
+  postgres-data:
+  redis-data:
+  uploads:
+  app-data:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  tempo-data:

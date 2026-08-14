@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AEGIS Operator Console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg:#0b0f14; --panel:#131a22; --border:#223041; --text:#e6edf3;
+    --muted:#8b98a5; --green:#3fb950; --red:#f85149; --yellow:#d29922; --blue:#58a6ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; }
+  #login { max-width:400px; margin:60px auto; padding:24px; background:var(--panel); border:1px solid var(--border); border-radius:10px; }
+  input, select, textarea { width:100%; padding:10px; margin:6px 0; background:#0d1117; border:1px solid var(--border); color:var(--text); border-radius:6px; }
+  .btn { padding:9px 14px; background:var(--blue); color:#031525; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:13px; }
+  .btn.secondary { background:var(--border); color:var(--text); }
+  .btn.danger { background:var(--red); color:#fff; }
+  .btn.warn { background:var(--yellow); color:#000; }
+  main { display:none; padding:16px 20px 40px; max-width:1200px; margin:0 auto; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:10px; }
+  .tabs button { background:transparent; border:1px solid var(--border); color:var(--muted); padding:8px 12px; border-radius:6px; cursor:pointer; }
+  .tabs button.active { background:var(--blue); color:#031525; border-color:var(--blue); font-weight:700; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px; }
+  .card .num { font-size:24px; font-weight:700; }
+  .card .label { color:var(--muted); font-size:12px; margin-top:4px; }
+  table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; font-size:13px; }
+  th, td { text-align:left; padding:9px 11px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.4px; }
+  .pill { padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; display:inline-block; }
+  .pill.ok, .pill.online, .pill.active { background:rgba(63,185,80,.15); color:var(--green); }
+  .pill.fail, .pill.offline, .pill.suspended { background:rgba(248,81,73,.15); color:var(--red); }
+  .pill.warn, .pill.past_due, .pill.demo { background:rgba(210,153,34,.15); color:var(--yellow); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0; }
+  .row > * { flex:1; min-width:120px; }
+  .muted { color:var(--muted); font-size:13px; }
+  pre { white-space:pre-wrap; font-size:12px; background:#0d1117; padding:10px; border-radius:6px; border:1px solid var(--border); }
+  #error { color:var(--red); font-size:13px; margin-top:8px; }
+  h2 { font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin:18px 0 10px; }
+  code { font-size:12px; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2 style="margin-top:0;">AEGIS Operator Console</h2>
+  <p class="muted">Backend URL + admin API key (ADMIN_BOOTSTRAP_KEY or issued admin key).</p>
+  <input id="apiUrl" placeholder="https://your-service.onrender.com">
+  <input id="apiKey" placeholder="X-API-Key" type="password">
+  <button class="btn" onclick="login()">Connect</button>
+  <div id="error"></div>
+</div>
+
+<header id="appHeader" style="display:none;">
+  <h1>AEGIS Operator Console</h1>
+  <div class="row" style="flex:0; margin:0;">
+    <span class="muted" id="lastRefresh"></span>
+    <button class="btn secondary" onclick="refreshAll()">Refresh</button>
+    <button class="btn secondary" onclick="logout()">Log out</button>
+  </div>
+</header>
+
+<main id="app">
+  <div class="tabs" id="tabs">
+    <button class="active" data-tab="overview">Overview</button>
+    <button data-tab="audit">Audit log</button>
+    <button data-tab="tenants">Tenants & plans</button>
+    <button data-tab="keys">API keys</button>
+    <button data-tab="devices">Devices</button>
+    <button data-tab="downloads">Downloads</button>
+    <button data-tab="uploads">Uploads</button>
+    <button data-tab="alerts">Alerts</button>
+    <button data-tab="templates">Templates</button>
+  </div>
+
+  <section class="panel active" id="tab-overview">
+    <div class="cards" id="summaryCards"></div>
+    <div class="cards" id="diagCards"></div>
+    <h2>Recent signals</h2>
+    <table id="signalTable"><thead><tr><th>Time</th><th>Account</th><th>Signal</th><th>Conf</th><th>Rule</th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <section class="panel" id="tab-audit">
+    <div class="row">
+      <input id="auditActionFilter" placeholder="Filter action (key.issue, device.bind…)">
+      <input id="auditAccountFilter" placeholder="Account ID">
+      <button class="btn" onclick="loadAudit()">Apply</button>
+    </div>
+    <div class="cards" id="auditSummaryCards"></div>
+    <table id="auditTable">
+      <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Account</th><th>IP</th><th>OK</th><th>Detail</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="tab-tenants">
+    <h2>Commercial plans</h2>
+    <div class="cards" id="planCards"></div>
+    <h2>Assign plan</h2>
+    <div class="card">
+      <div class="row">
+        <input id="setPlanAccount" placeholder="Account ID">
+        <select id="setPlanCode"></select>
+        <button class="btn" onclick="setPlan()">Set plan</button>
+      </div>
+      <pre id="setPlanResult" class="muted"></pre>
+    </div>
+    <h2>Tenants</h2>
+    <table id="tenantTable">
+      <thead><tr><th>Account</th><th>Status</th><th>Plan</th><th>Devices</th><th>Trades today</th><th>Period end</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="tab-keys">
+    <h2>Issue client key</h2>
+    <div class="card">
+      <div class="row">
+        <input id="issueAccountId" placeholder="Account ID (blank = auto)">
+        <input id="issueLabel" placeholder="Label">
+        <input id="issueTtl" placeholder="TTL days (blank=default)" type="number">
+        <button class="btn" onclick="issueClientKey()">Issue key</button>
+      </div>
+      <pre id="issueResult"></pre>
+    </div>
+    <h2>Keys</h2>
+    <table id="keyTable">
+      <thead><tr><th>ID</th><th>Account</th><th>Admin</th><th>Label</th><th>Expires</th><th>Rotate due</th><th>Force</th><th>Revoked</th><th>Issued by</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="tab-devices">
+    <p class="muted">Multi-device limits come from the tenant plan (Starter=1 … Enterprise=10).</p>
+    <table id="deviceTable">
+      <thead><tr><th>Account</th><th>Device</th><th>Label</th><th>Bound</th><th>Last seen</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="tab-downloads">
+    <h2>Issue download token</h2>
+    <div class="card">
+      <div class="row">
+        <input id="dlAccountId" placeholder="Account ID">
+        <select id="dlPlan">
+          <option value="starter">starter</option>
+          <option value="pro">pro</option>
+          <option value="business">business</option>
+          <option value="enterprise">enterprise</option>
+          <option value="demo">demo</option>
+        </select>
+        <button class="btn" onclick="issueDownloadToken()">Issue link</button>
+      </div>
+      <pre id="dlResult"></pre>
+    </div>
+    <h2>Recent tokens</h2>
+    <table id="tokenTable">
+      <thead><tr><th>Suffix</th><th>Account</th><th>Plan</th><th>Uses</th><th>Expires</th><th>Revoked</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="tab-uploads">
+    <div class="cards" id="uploadTrendCards"></div>
+    <table id="uploadTable">
+      <thead><tr><th>Time</th><th>Account</th><th>OK</th><th>HTTP</th><th>Latency</th><th>Error</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="tab-templates">
+    <p class="muted">Indicator stacks + rulebooks. Activate a pair to push to all mobile clients.</p>
+    <div class="cards" id="templateCards"></div>
+    <div class="card">
+      <div class="row">
+        <select id="actStack"></select>
+        <select id="actBook"></select>
+        <button class="btn" onclick="activateTemplates()">Activate</button>
+      </div>
+      <pre id="templateResult"></pre>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-alerts">
+    <p class="muted">Configure SMTP / Telegram / Slack / Twilio SMS / Twilio WhatsApp in Render env. Unconfigured channels are skipped.</p>
+    <div class="card">
+      <input id="alertSubject" value="AEGIS operator test">
+      <textarea id="alertBody" rows="3">Test alert from the operator console.</textarea>
+      <div class="row">
+        <button class="btn warn" onclick="testAlert()">Send test to all channels</button>
+      </div>
+      <pre id="alertResult"></pre>
+    </div>
+  </section>
+</main>
+
+<script>
+let apiUrl = localStorage.getItem('aegis_admin_url') || '';
+let apiKey = localStorage.getItem('aegis_admin_key') || '';
+
+document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+function login() {
+  apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+  apiKey = document.getElementById('apiKey').value;
+  if (!apiUrl || !apiKey) { showError('Enter both fields.'); return; }
+  localStorage.setItem('aegis_admin_url', apiUrl);
+  localStorage.setItem('aegis_admin_key', apiKey);
+  showError('');
+  init();
+}
+function logout() {
+  localStorage.removeItem('aegis_admin_url');
+  localStorage.removeItem('aegis_admin_key');
+  location.reload();
+}
+function showError(msg) { document.getElementById('error').textContent = msg; }
+
+async function api(path, opts = {}) {
+  const res = await fetch(apiUrl + path, {
+    ...opts,
+    headers: {
+      'X-API-Key': apiKey,
+      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(opts.headers || {}),
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data.detail && (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail))) || (path + ' -> ' + res.status));
+  return data;
+}
+
+function pill(status) {
+  const s = (status || '').toLowerCase();
+  let cls = 'warn';
+  if (['active','online','ok','success','true'].includes(s)) cls = 'ok';
+  if (['suspended','canceled','offline','fail','false','revoked'].includes(s)) cls = 'fail';
+  if (s === 'demo') cls = 'demo';
+  return `<span class="pill ${cls}">${status || '-'}</span>`;
+}
+
+async function refreshAll() {
+  try {
+    const [summary, devicesHealth, subs, signals, audit, uploads, trends, keys, devices, tokens, plans, tenants, diag] = await Promise.all([
+      api('/api/admin/summary'),
+      api('/api/devices/health'),
+      api('/api/subscriptions'),
+      api('/api/admin/signals/recent?limit=30'),
+      api('/api/admin/audit?limit=80'),
+      api('/api/admin/uploads/recent?limit=80'),
+      api('/api/admin/uploads/trends?hours=24'),
+      api('/api/admin/keys'),
+      api('/api/admin/devices'),
+      api('/api/admin/download-tokens'),
+      api('/api/admin/plans'),
+      api('/api/admin/tenants'),
+      api('/api/admin/diagnostics'),
+    ]);
+    renderSummary(summary, diag);
+    renderSignals(signals);
+    renderAudit(audit);
+    renderPlans(plans);
+    renderTenants(tenants);
+    renderKeys(keys);
+    renderDevices(devices);
+    renderTokens(tokens);
+    renderUploads(uploads, trends);
+    try { loadTemplates(); } catch (_) {}
+    document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    showError('');
+  } catch (e) {
+    showError('Load failed: ' + e.message);
+  }
+}
+
+function renderSummary(summary, diag) {
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="card"><div class="num">${summary.devices.online}/${summary.devices.total}</div><div class="label">Devices online</div></div>
+    <div class="card"><div class="num">${summary.subscriptions.by_status.active || 0}</div><div class="label">Active subs</div></div>
+    <div class="card"><div class="num">${summary.active_workers_this_instance}/${summary.max_concurrent_workers || '?'}</div><div class="label">Workers</div></div>
+    <div class="card"><div class="num">${(diag && diag.upload_trends_24h && diag.upload_trends_24h.total) || 0}</div><div class="label">Uploads 24h</div></div>
+  `;
+  if (diag) {
+    const t = diag.upload_trends_24h || {};
+    document.getElementById('diagCards').innerHTML = `
+      <div class="card"><div class="num">${diag.redis_ok ? 'YES' : 'NO'}</div><div class="label">Redis</div></div>
+      <div class="card"><div class="num">${t.success_rate != null ? Math.round(t.success_rate*100)+'%' : '—'}</div><div class="label">Upload success</div></div>
+      <div class="card"><div class="num">${t.avg_latency_ms != null ? Math.round(t.avg_latency_ms)+'ms' : '—'}</div><div class="label">Avg latency</div></div>
+      <div class="card"><div class="num">${diag.app_version || '—'}</div><div class="label">API version</div></div>
+    `;
+  }
+}
+
+function renderSignals(rows) {
+  document.querySelector('#signalTable tbody').innerHTML = (rows||[]).map(s => `<tr>
+    <td>${s.created_at ? new Date(s.created_at).toLocaleString() : '-'}</td>
+    <td>${s.account_id||'-'}</td>
+    <td>${pill(s.signal)}</td>
+    <td>${s.confidence != null ? Math.round(s.confidence*100)+'%' : '-'}</td>
+    <td>${s.rule_name||'-'}</td>
+  </tr>`).join('') || '<tr><td colspan="5" class="muted">No signals</td></tr>';
+}
+
+function renderAudit(events) {
+  const list = events || [];
+  const by = {};
+  list.forEach(e => { by[e.action] = (by[e.action]||0)+1; });
+  const top = Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('auditSummaryCards').innerHTML =
+    `<div class="card"><div class="num">${list.length}</div><div class="label">Events</div></div>` +
+    top.map(([a,c]) => `<div class="card"><div class="num">${c}</div><div class="label">${a}</div></div>`).join('');
+  document.querySelector('#auditTable tbody').innerHTML = list.map(e => `<tr>
+    <td>${e.created_at ? new Date(e.created_at).toLocaleString() : '-'}</td>
+    <td>${e.actor_label || e.actor_id || e.actor_type || '-'}</td>
+    <td><code>${e.action||'-'}</code></td>
+    <td>${(e.target_type||'')+(e.target_id?':'+e.target_id:'')}</td>
+    <td>${e.account_id||'-'}</td>
+    <td>${e.ip||'-'}</td>
+    <td>${pill(e.success===false?'fail':'ok')}</td>
+    <td title="${(e.detail||'').replace(/"/g,'&quot;')}">${e.detail||'-'}</td>
+  </tr>`).join('') || '<tr><td colspan="8" class="muted">No audit events</td></tr>';
+}
+
+async function loadAudit() {
+  const action = document.getElementById('auditActionFilter').value.trim();
+  const account = document.getElementById('auditAccountFilter').value.trim();
+  let path = '/api/admin/audit?limit=100';
+  if (action) path += '&action=' + encodeURIComponent(action);
+  if (account) path += '&account_id=' + encodeURIComponent(account);
+  renderAudit(await api(path));
+}
+
+function renderPlans(plans) {
+  document.getElementById('planCards').innerHTML = (plans||[]).map(p => `
+    <div class="card">
+      <div class="num" style="font-size:16px;">${p.label || p.code}</div>
+      <div class="label">${p.max_devices} device(s) · ${p.max_trades_per_day===0?'∞':p.max_trades_per_day} trades/day · ${p.live_trading?'live':'demo only'}</div>
+      <div class="muted" style="margin-top:6px;">${p.price_hint||''}</div>
+    </div>`).join('');
+  const sel = document.getElementById('setPlanCode');
+  sel.innerHTML = (plans||[]).map(p => `<option value="${p.code}">${p.code} — ${p.label}</option>`).join('');
+}
+
+function renderTenants(rows) {
+  document.querySelector('#tenantTable tbody').innerHTML = (rows||[]).map(s => {
+    const t = s.trades_today || {};
+    const trades = t.unlimited ? `${t.used||0}/∞` : `${t.used||0}/${t.limit||'-'}`;
+    return `<tr>
+      <td>${s.account_id}</td>
+      <td>${pill(s.status)}</td>
+      <td>${s.plan||'-'} <span class="muted">(${s.max_devices||'?'} dev)</span></td>
+      <td>${s.bound_devices||0}/${s.max_devices||1}</td>
+      <td>${trades}</td>
+      <td>${s.current_period_end ? new Date(s.current_period_end).toLocaleDateString() : '-'}</td>
+      <td>
+        <button class="btn secondary" onclick="clearDevices('${s.account_id}')">Clear devices</button>
+        <button class="btn danger" onclick="disconnectAccount('${s.account_id}')">Disconnect</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="muted">No tenants</td></tr>';
+}
+
+async function setPlan() {
+  const account_id = document.getElementById('setPlanAccount').value.trim();
+  const plan = document.getElementById('setPlanCode').value;
+  if (!account_id) return alert('Account required');
+  try {
+    const data = await api('/api/admin/tenants/set-plan', { method:'POST', body: JSON.stringify({ account_id, plan }) });
+    document.getElementById('setPlanResult').textContent = JSON.stringify(data, null, 2);
+    refreshAll();
+  } catch (e) {
+    document.getElementById('setPlanResult').textContent = e.message;
+  }
+}
+
+async function clearDevices(accountId) {
+  if (!confirm('Clear all device bindings for ' + accountId + '?')) return;
+  await api('/api/devices/binding/' + encodeURIComponent(accountId), { method:'DELETE' });
+  refreshAll();
+}
+
+async function disconnectAccount(accountId) {
+  if (!confirm('Disconnect MT5 worker for ' + accountId + '?')) return;
+  await fetch(apiUrl + '/api/trading/disconnect/' + encodeURIComponent(accountId), {
+    method:'POST', headers:{ 'X-API-Key': apiKey }
+  });
+  refreshAll();
+}
+
+function renderKeys(keys) {
+  document.querySelector('#keyTable tbody').innerHTML = (keys||[]).map(k => `<tr>
+    <td>${k.id}</td>
+    <td>${k.account_id||'-'}</td>
+    <td>${k.is_admin?pill('ok'):'-'}</td>
+    <td>${k.label||'-'}</td>
+    <td>${k.expires_at ? new Date(k.expires_at).toLocaleDateString() : 'never'}</td>
+    <td>${k.rotation_due_at ? new Date(k.rotation_due_at).toLocaleDateString() : '-'}</td>
+    <td>${k.force_rotate?pill('warn'):'-'}</td>
+    <td>${k.revoked?pill('fail'):pill('ok')}</td>
+    <td>${k.issued_by||'-'}</td>
+    <td>
+      ${k.revoked?'':`<button class="btn danger" onclick="revokeKey(${k.id})">Revoke</button>
+      <button class="btn warn" onclick="forceRotate(${k.id})">Force rotate</button>
+      <button class="btn secondary" onclick="rotateKey(${k.id})">Rotate</button>`}
+    </td>
+  </tr>`).join('') || '<tr><td colspan="10" class="muted">No keys</td></tr>';
+}
+
+async function issueClientKey() {
+  const body = {};
+  const a = document.getElementById('issueAccountId').value.trim();
+  const l = document.getElementById('issueLabel').value.trim();
+  const ttl = document.getElementById('issueTtl').value;
+  if (a) body.account_id = a;
+  if (l) body.label = l;
+  if (ttl !== '') body.expires_in_days = Number(ttl);
+  try {
+    const data = await api('/api/admin/keys/issue', { method:'POST', body: JSON.stringify(body) });
+    document.getElementById('issueResult').style.color = 'var(--green)';
+    document.getElementById('issueResult').textContent =
+      'account_id: ' + data.account_id + '\napi_key: ' + data.api_key + '\n\nCopy now — shown once.';
+    refreshAll();
+  } catch (e) {
+    document.getElementById('issueResult').style.color = 'var(--red)';
+    document.getElementById('issueResult').textContent = e.message;
+  }
+}
+
+async function revokeKey(id) {
+  if (!confirm('Revoke key ' + id + '?')) return;
+  await api('/api/admin/keys/' + id + '/revoke', { method:'POST' });
+  refreshAll();
+}
+async function forceRotate(id) {
+  await api('/api/admin/keys/' + id + '/force-rotate', { method:'POST' });
+  refreshAll();
+}
+async function rotateKey(id) {
+  const data = await api('/api/admin/keys/rotate', { method:'POST', body: JSON.stringify({ key_id: id }) });
+  alert('New api_key (copy now):\n' + data.api_key);
+  refreshAll();
+}
+
+function renderDevices(rows) {
+  document.querySelector('#deviceTable tbody').innerHTML = (rows||[]).map(d => `<tr>
+    <td>${d.account_id}</td>
+    <td><code>${(d.device_id||'').slice(0,12)}…</code></td>
+    <td>${d.device_label||'-'}</td>
+    <td>${d.bound_at ? new Date(d.bound_at).toLocaleString() : '-'}</td>
+    <td>${d.last_seen_at ? new Date(d.last_seen_at).toLocaleString() : '-'}</td>
+    <td><button class="btn danger" onclick="clearDevices('${d.account_id}')">Clear account devices</button></td>
+  </tr>`).join('') || '<tr><td colspan="6" class="muted">No device bindings</td></tr>';
+}
+
+function renderTokens(rows) {
+  document.querySelector('#tokenTable tbody').innerHTML = (rows||[]).map(t => `<tr>
+    <td>…${t.token_suffix}</td>
+    <td>${t.account_id}</td>
+    <td>${t.plan}</td>
+    <td>${t.uses}/${t.max_uses}</td>
+    <td>${t.expires_at ? new Date(t.expires_at).toLocaleString() : '-'}</td>
+    <td>${t.revoked?pill('fail'):pill('ok')}</td>
+  </tr>`).join('') || '<tr><td colspan="6" class="muted">No tokens</td></tr>';
+}
+
+async function issueDownloadToken() {
+  const account_id = document.getElementById('dlAccountId').value.trim();
+  const plan = document.getElementById('dlPlan').value;
+  if (!account_id) return alert('Account required');
+  try {
+    const data = await api('/api/download/token', { method:'POST', body: JSON.stringify({ account_id, plan, max_uses:1, ttl_hours:48 }) });
+    document.getElementById('dlResult').style.color = 'var(--green)';
+    document.getElementById('dlResult').textContent = data.download_url + '\n\ntoken: ' + data.token;
+    refreshAll();
+  } catch (e) {
+    document.getElementById('dlResult').style.color = 'var(--red)';
+    document.getElementById('dlResult').textContent = e.message;
+  }
+}
+
+function renderUploads(rows, trends) {
+  const t = trends || {};
+  document.getElementById('uploadTrendCards').innerHTML = `
+    <div class="card"><div class="num">${t.total||0}</div><div class="label">Uploads 24h</div></div>
+    <div class="card"><div class="num">${t.success_rate!=null?Math.round(t.success_rate*100)+'%':'—'}</div><div class="label">Success rate</div></div>
+    <div class="card"><div class="num">${t.failures||0}</div><div class="label">Failures</div></div>
+    <div class="card"><div class="num">${t.avg_latency_ms!=null?Math.round(t.avg_latency_ms)+'ms':'—'}</div><div class="label">Avg latency</div></div>
+    <div class="card"><div class="num">${t.p95_latency_ms!=null?Math.round(t.p95_latency_ms)+'ms':'—'}</div><div class="label">P95 latency</div></div>
+  `;
+  document.querySelector('#uploadTable tbody').innerHTML = (rows||[]).map(r => `<tr>
+    <td>${r.created_at?new Date(r.created_at).toLocaleString():'-'}</td>
+    <td>${r.account_id}</td>
+    <td>${pill(r.success?'ok':'fail')}</td>
+    <td>${r.http_status??'-'}</td>
+    <td>${r.latency_ms!=null?Math.round(r.latency_ms):'-'}</td>
+    <td>${r.error_code||'-'}</td>
+  </tr>`).join('') || '<tr><td colspan="6" class="muted">No uploads</td></tr>';
+}
+
+async function loadTemplates() {
+  try {
+    const [stacks, books, active] = await Promise.all([
+      api('/api/templates/indicator-stacks'),
+      api('/api/templates/rulebooks'),
+      api('/api/templates/active'),
+    ]);
+    document.getElementById('templateCards').innerHTML =
+      `<div class="card"><div class="num">${active.indicator_stack_version}</div><div class="label">Active stack</div></div>
+       <div class="card"><div class="num">${active.rulebook_version}</div><div class="label">Active rulebook</div></div>
+       <div class="card"><div class="num">${(stacks||[]).length}</div><div class="label">Stack versions</div></div>
+       <div class="card"><div class="num">${(books||[]).length}</div><div class="label">Rulebooks</div></div>`;
+    document.getElementById('actStack').innerHTML = (stacks||[]).map(s =>
+      `<option value="${s.version}">${s.version} — ${s.title||''}</option>`).join('');
+    document.getElementById('actBook').innerHTML = (books||[]).map(b =>
+      `<option value="${b.version}">${b.version} — ${b.title||''}</option>`).join('');
+  } catch (e) {
+    document.getElementById('templateResult').textContent = e.message;
+  }
+}
+async function activateTemplates() {
+  try {
+    const data = await api('/api/templates/activate', {
+      method: 'POST',
+      body: JSON.stringify({
+        indicator_stack_version: document.getElementById('actStack').value,
+        rulebook_version: document.getElementById('actBook').value,
+      })
+    });
+    document.getElementById('templateResult').textContent = JSON.stringify(data, null, 2);
+    loadTemplates();
+  } catch (e) {
+    document.getElementById('templateResult').textContent = e.message;
+  }
+}
+
+async function testAlert() {
+  try {
+    const data = await api('/api/admin/alerts/test', {
+      method:'POST',
+      body: JSON.stringify({
+        subject: document.getElementById('alertSubject').value,
+        body: document.getElementById('alertBody').value,
+      })
+    });
+    document.getElementById('alertResult').textContent = JSON.stringify(data.results || data, null, 2);
+  } catch (e) {
+    document.getElementById('alertResult').textContent = e.message;
+  }
+}
+
+function init() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('appHeader').style.display = 'flex';
+  document.getElementById('app').style.display = 'block';
+  refreshAll();
+  setInterval(refreshAll, 30000);
+}
+
+if (apiUrl && apiKey) {
+  document.getElementById('apiUrl').value = apiUrl;
+  document.getElementById('apiKey').value = apiKey;
+  init();
+}
+</script>
+</body>
+</html>

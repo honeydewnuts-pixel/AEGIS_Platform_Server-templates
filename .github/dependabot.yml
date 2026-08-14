@@ -1,0 +1,27 @@
+# Keeps GitHub Actions versions, Python packages, and Gradle dependencies
+# current automatically via weekly PRs. This is deliberately the answer
+# to "which exact version is current" going forward - Dependabot checks
+# live registries, which nothing in this codebase's development process
+# had access to (no network access in that environment). Trust these PRs
+# over any hardcoded version this codebase was built with.
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Security patches land here fast - pip-audit in CI (backend-ci.yml)
+    # catches known CVEs against whatever's currently pinned; Dependabot
+    # is what actually proposes the fix.
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "gradle"
+    directory: "/mobile_app"
+    schedule:
+      interval: "weekly"

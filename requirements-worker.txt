@@ -1,0 +1,15 @@
+# ============================================================
+# Worker-pool requirements - install this on the Windows
+# machines/VMs that actually run mt5_worker.py.
+#
+# IMPORTANT: MetaTrader5 has no Linux wheels. `pip install MetaTrader5`
+# will fail on the main Linux API server - that's why it's kept out of
+# the root requirements.txt and split into this file. The worker also
+# needs the real MT5 desktop terminal installed and logged-in-capable
+# on the same Windows machine.
+# ============================================================
+
+MetaTrader5==5.0.4993
+redis==5.2.1
+python-dotenv==1.0.1
+pydantic==2.10.4

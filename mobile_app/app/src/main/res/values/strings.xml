@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AEGIS</string>
+    <string name="accessibility_service_description">AEGIS Auto-Trader for MT5. Allows automated trading signals to interact with MetaTrader 5.</string>
+</resources>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AEGIS - My Account</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg:#0b0f14; --panel:#131a22; --border:#223041; --text:#e6edf3;
+    --muted:#8b98a5; --green:#3fb950; --red:#f85149; --yellow:#d29922; --blue:#58a6ff;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system, Segoe UI, Roboto, sans-serif; }
+  #login { max-width:380px; margin:100px auto; padding:28px; background:var(--panel); border:1px solid var(--border); border-radius:10px; }
+  #login h2 { margin-top:0; }
+  #login input { width:100%; padding:11px; margin:8px 0; background:#0d1117; border:1px solid var(--border); color:var(--text); border-radius:6px; }
+  .btn { padding:11px 18px; background:var(--blue); color:#031; border:none; border-radius:6px; cursor:pointer; font-weight:600; width:100%; margin-top:8px;}
+  #error { color:var(--red); font-size:13px; margin-top:8px; }
+  main { max-width:480px; margin:60px auto; padding:0 20px; display:none; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:24px; margin-bottom:16px; }
+  .status-pill { display:inline-block; padding:4px 12px; border-radius:14px; font-weight:700; font-size:13px; }
+  .status-pill.active { background:rgba(63,185,80,.15); color:var(--green); }
+  .status-pill.past_due { background:rgba(210,153,34,.15); color:var(--yellow); }
+  .status-pill.suspended, .status-pill.canceled { background:rgba(248,81,73,.15); color:var(--red); }
+  .row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:14px; }
+  .row:last-child { border-bottom:none; }
+  .row .k { color:var(--muted); }
+  .download-btn { display:block; text-align:center; text-decoration:none; }
+  h1 { font-size:20px; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2>AEGIS - My Account</h2>
+  <p style="color:var(--muted); font-size:13px;">Use the Account ID and Portal Token shown after you subscribed.</p>
+  <input id="apiUrl" placeholder="Backend URL (e.g. https://api.your-domain.com)">
+  <input id="accountId" placeholder="Account ID">
+  <input id="token" placeholder="Portal Token" type="password">
+  <button class="btn" onclick="login()">Sign in</button>
+  <div id="error"></div>
+</div>
+
+<main id="app">
+  <h1>My AEGIS Account</h1>
+
+  <div class="card">
+    <div class="row"><span class="k">Status</span><span id="statusPill"></span></div>
+    <div class="row"><span class="k">Provider</span><span id="provider"></span></div>
+    <div class="row"><span class="k">Renews / Ends</span><span id="periodEnd"></span></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Your Device</h3>
+    <div class="row"><span class="k">Status</span><span id="deviceStatus"></span></div>
+    <div class="row"><span class="k">Battery</span><span id="deviceBattery"></span></div>
+    <div class="row"><span class="k">Last capture</span><span id="deviceLastCapture"></span></div>
+    <div class="row"><span class="k">Screenshots queued (offline)</span><span id="deviceCache"></span></div>
+  </div>
+
+  <div class="card">
+    <a id="downloadBtn" class="btn download-btn" href="#">Download AEGIS App</a>
+    <p style="color:var(--muted); font-size:12px; margin-top:8px;">
+      Available while your subscription is active.
+    </p>
+  </div>
+</main>
+
+<script>
+let apiUrl, accountId, token;
+
+function login() {
+  apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
+  accountId = document.getElementById('accountId').value.trim();
+  token = document.getElementById('token').value.trim();
+  if (!apiUrl || !accountId || !token) {
+    document.getElementById('error').textContent = 'Fill in all fields.';
+    return;
+  }
+  localStorage.setItem('aegis_portal_url', apiUrl);
+  localStorage.setItem('aegis_portal_account', accountId);
+  localStorage.setItem('aegis_portal_token', token);
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  const qs = `account_id=${encodeURIComponent(accountId)}&token=${encodeURIComponent(token)}`;
+  try {
+    const statusRes = await fetch(`${apiUrl}/api/portal/status?${qs}`);
+    if (!statusRes.ok) throw new Error('Invalid Account ID or Portal Token.');
+    const status = await statusRes.json();
+
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+    const pill = document.getElementById('statusPill');
+    pill.textContent = status.status;
+    pill.className = 'status-pill ' + status.status;
+    document.getElementById('provider').textContent = status.provider || '-';
+    document.getElementById('periodEnd').textContent = status.current_period_end
+      ? new Date(status.current_period_end).toLocaleDateString() : '-';
+
+    const deviceRes = await fetch(`${apiUrl}/api/portal/device?${qs}`);
+    const device = await deviceRes.json();
+    document.getElementById('deviceStatus').textContent = device.status;
+    document.getElementById('deviceBattery').textContent = device.battery_percent != null
+      ? device.battery_percent + '%' + (device.is_charging ? ' (charging)' : '') : '-';
+    document.getElementById('deviceLastCapture').textContent = device.last_capture_time_ms
+      ? new Date(device.last_capture_time_ms).toLocaleTimeString() : 'No captures yet';
+    document.getElementById('deviceCache').textContent = device.cached_screenshot_count ?? 0;
+
+    if (status.is_active) {
+      const dlRes = await fetch(`${apiUrl}/api/portal/download-url?${qs}`);
+      if (dlRes.ok) {
+        const dl = await dlRes.json();
+        document.getElementById('downloadBtn').href = apiUrl + dl.download_url;
+      }
+    } else {
+      const btn = document.getElementById('downloadBtn');
+      btn.textContent = 'Subscription inactive - renew to download';
+      btn.style.background = 'var(--border)';
+      btn.removeAttribute('href');
+    }
+  } catch (e) {
+    document.getElementById('error').textContent = e.message;
+  }
+}
+
+// Auto-login if a session was saved
+const savedUrl = localStorage.getItem('aegis_portal_url');
+const savedAccount = localStorage.getItem('aegis_portal_account');
+const savedToken = localStorage.getItem('aegis_portal_token');
+if (savedUrl && savedAccount && savedToken) {
+  apiUrl = savedUrl; accountId = savedAccount; token = savedToken;
+  loadDashboard();
+}
+</script>
+</body>
+</html>

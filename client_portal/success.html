@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AEGIS - Welcome</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg:#0b0f14; --panel:#131a22; --border:#223041; --text:#e6edf3;
+    --muted:#8b98a5; --green:#3fb950; --red:#f85149; --yellow:#d29922; --blue:#58a6ff;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width:480px; margin:60px auto; padding:0 20px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:28px; }
+  h2 { margin-top:0; }
+  .waiting { text-align:center; color:var(--muted); padding:30px 0; }
+  .spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--blue); border-radius:50%; margin:0 auto 16px; animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .warning { background:rgba(210,153,34,.12); border:1px solid var(--yellow); border-radius:8px; padding:14px; margin-bottom:20px; font-size:13px; color:var(--yellow); }
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
+  .field .value { background:#0d1117; border:1px solid var(--border); border-radius:6px; padding:12px; font-family:monospace; font-size:13px; word-break:break-all; position:relative; }
+  .copy-btn { background:var(--border); color:var(--text); border:none; border-radius:4px; padding:4px 10px; font-size:11px; cursor:pointer; margin-top:8px; }
+  .btn { padding:12px 18px; background:var(--blue); color:#031; border:none; border-radius:6px; cursor:pointer; font-weight:600; width:100%; margin-top:12px; text-align:center; text-decoration:none; display:block; }
+  #error { color:var(--red); font-size:13px; }
+</style>
+</head>
+<body>
+
+<main>
+  <div class="card">
+    <h2>Welcome to AEGIS</h2>
+
+    <div id="waitingState" class="waiting">
+      <div class="spinner"></div>
+      <div>Confirming your payment...</div>
+      <div style="font-size:12px; margin-top:8px;">This usually takes a few seconds.</div>
+    </div>
+
+    <div id="credentialsState" style="display:none;">
+      <div class="warning">
+        ⚠ This is shown <strong>once</strong>. Save your API Key and Portal
+        Token now (screenshot, password manager, write it down) - they
+        cannot be displayed again after you leave this page.
+      </div>
+
+      <div class="field">
+        <label>Account ID</label>
+        <div class="value" id="accountIdValue"></div>
+      </div>
+
+      <div class="field">
+        <label>Mobile App API Key</label>
+        <div class="value" id="apiKeyValue"></div>
+        <button class="copy-btn" onclick="copyValue('apiKeyValue')">Copy</button>
+      </div>
+
+      <div class="field">
+        <label>Portal Token</label>
+        <div class="value" id="portalTokenValue"></div>
+        <button class="copy-btn" onclick="copyValue('portalTokenValue')">Copy</button>
+      </div>
+
+      <a class="btn" href="index.html">Continue to My Account</a>
+    </div>
+
+    <div id="errorState" style="display:none;">
+      <p id="error"></p>
+      <button class="btn" onclick="attemptReveal()">Try Again</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const accountId = params.get('account_id') || localStorage.getItem('aegis_pending_account_id');
+const revealToken = params.get('reveal_token');
+const apiUrl = localStorage.getItem('aegis_portal_url');
+
+let attempts = 0;
+const MAX_ATTEMPTS = 10;
+const RETRY_DELAY_MS = 3000;
+
+function copyValue(id) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent);
+}
+
+async function attemptReveal() {
+  document.getElementById('waitingState').style.display = 'block';
+  document.getElementById('errorState').style.display = 'none';
+
+  if (!apiUrl || !accountId || !revealToken) {
+    showError('Missing information from the payment redirect. If you just paid, check your email or contact support with your Account ID.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${apiUrl}/api/subscriptions/reveal?account_id=${encodeURIComponent(accountId)}&reveal_token=${encodeURIComponent(revealToken)}`);
+
+    if (res.ok) {
+      const data = await res.json();
+      showCredentials(data);
+      return;
+    }
+
+    attempts++;
+    if (attempts >= MAX_ATTEMPTS) {
+      showError('Payment confirmation is taking longer than expected. Your subscription may still be processing - try signing in in a minute, or contact support with your Account ID: ' + accountId);
+      return;
+    }
+    setTimeout(attemptReveal, RETRY_DELAY_MS);
+  } catch (e) {
+    showError('Could not reach the backend: ' + e.message);
+  }
+}
+
+function showCredentials(data) {
+  document.getElementById('waitingState').style.display = 'none';
+  document.getElementById('credentialsState').style.display = 'block';
+  document.getElementById('accountIdValue').textContent = accountId;
+  document.getElementById('apiKeyValue').textContent = data.mobile_api_key;
+  document.getElementById('portalTokenValue').textContent = data.portal_token;
+  localStorage.removeItem('aegis_pending_account_id');
+  // Pre-fill the portal login for a smooth "Continue to My Account" experience
+  localStorage.setItem('aegis_portal_account', accountId);
+  localStorage.setItem('aegis_portal_token', data.portal_token);
+}
+
+function showError(message) {
+  document.getElementById('waitingState').style.display = 'none';
+  document.getElementById('errorState').style.display = 'block';
+  document.getElementById('error').textContent = message;
+}
+
+attemptReveal();
+</script>
+</body>
+</html>

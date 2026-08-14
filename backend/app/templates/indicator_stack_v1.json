@@ -1,0 +1,336 @@
+{
+  "version": "v1",
+  "status": "active",
+  "title": "AEGIS Mobile MT5 Standard Indicator Template",
+  "description": "Color configuration for the AEGIS Mobile MT5 Indicator Rulebook Brain. Generated from the standardized 10-image Mobile MT5 template. All colors are stored in RGB with HSV tolerances to accommodate device brightness, compression artifacts, and minor rendering differences.",
+  "theme": "Dark",
+  "timeframe": "M1",
+  "roi": {
+    "price_panel": {
+      "top_percent": 0.0,
+      "bottom_percent": 0.61
+    },
+    "indicator_panel": {
+      "top_percent": 0.61,
+      "bottom_percent": 1.0
+    }
+  },
+  "color_space": "HSV",
+  "global_tolerance": {
+    "hue": 10,
+    "saturation": 45,
+    "value": 45
+  },
+  "indicators": {
+    "#1": {
+      "name": "Bands34",
+      "description": "Stationary Bollinger Bands (Period 34, Deviation 1.618)",
+      "color_name": "White",
+      "rgb": [
+        245,
+        245,
+        245
+      ],
+      "hsv_tolerance": {
+        "hue": 12,
+        "saturation": 35,
+        "value": 40
+      }
+    },
+    "#2": {
+      "name": "Bands17",
+      "description": "Motional Bollinger Bands (Period 17, Deviation 2.618)",
+      "color_name": "BrightGreen",
+      "rgb": [
+        0,
+        255,
+        0
+      ],
+      "hsv_tolerance": {
+        "hue": 15,
+        "saturation": 50,
+        "value": 45
+      }
+    },
+    "#3": {
+      "name": "WilliamsR60",
+      "description": "Williams %R (60)",
+      "color_name": "Orange",
+      "rgb": [
+        255,
+        165,
+        0
+      ],
+      "hsv_tolerance": {
+        "hue": 15,
+        "saturation": 55,
+        "value": 45
+      }
+    },
+    "#4": {
+      "name": "MA7",
+      "description": "Moving Average 7",
+      "color_name": "Magenta",
+      "rgb": [
+        220,
+        0,
+        255
+      ],
+      "hsv_tolerance": {
+        "hue": 14,
+        "saturation": 50,
+        "value": 45
+      }
+    },
+    "#5": {
+      "name": "CCI6",
+      "description": "Commodity Channel Index (6)",
+      "color_name": "Red",
+      "rgb": [
+        255,
+        0,
+        0
+      ],
+      "hsv_tolerance": {
+        "hue": 12,
+        "saturation": 55,
+        "value": 45
+      }
+    },
+    "#6": {
+      "name": "RSI9",
+      "description": "Relative Strength Index (9)",
+      "color_name": "Cyan",
+      "rgb": [
+        70,
+        220,
+        255
+      ],
+      "hsv_tolerance": {
+        "hue": 15,
+        "saturation": 50,
+        "value": 45
+      }
+    }
+  },
+  "price_panel_indicators": {
+    "#7": {
+      "name": "MainBB30",
+      "description": "Main chart Bollinger Bands (Period 30, Deviation 1.000) - fixed reference, mirrors #1's role in the price panel",
+      "color_name": "White",
+      "rgb": [
+        245,
+        245,
+        245
+      ],
+      "hsv_tolerance": {
+        "hue": 12,
+        "saturation": 35,
+        "value": 40
+      }
+    },
+    "#8": {
+      "name": "MainBB20",
+      "description": "Main chart Bollinger Bands (Period 20, Deviation 1.000)",
+      "color_name": "CobaltBlue",
+      "rgb": [
+        77,
+        236,
+        253
+      ],
+      "hsv_tolerance": {
+        "hue": 10,
+        "saturation": 40,
+        "value": 40
+      }
+    },
+    "#9": {
+      "name": "MA2_Typical",
+      "description": "Moving Average (Period 2, LWMA, Typical Price HLC/3) - tightly tracks price",
+      "color_name": "Blue",
+      "rgb": [
+        0,
+        0,
+        255
+      ],
+      "hsv_tolerance": {
+        "hue": 8,
+        "saturation": 40,
+        "value": 40
+      }
+    },
+    "#10": {
+      "name": "MA60_chained",
+      "description": "Moving Average (Period 60, LWMA, applied to previous indicator data)",
+      "color_name": "Yellow",
+      "rgb": [
+        255,
+        235,
+        59
+      ],
+      "hsv_tolerance": {
+        "hue": 10,
+        "saturation": 40,
+        "value": 40
+      }
+    },
+    "#11": {
+      "name": "MA80_chained",
+      "description": "Moving Average (Period 80, LWMA, applied to previous indicator data) - documented as Brown, renders orange on screen",
+      "color_name": "Brown/Orange",
+      "rgb": [
+        255,
+        152,
+        0
+      ],
+      "hsv_tolerance": {
+        "hue": 10,
+        "saturation": 40,
+        "value": 40
+      }
+    },
+    "#12": {
+      "name": "Unidentified_Purple",
+      "description": "Documented as Purple - renders as magenta/hot-pink on screen. Exact source indicator (possibly the Envelope, documented as hidden) not fully confirmed, but color is now precisely sampled. Not required for trade execution per the rulebook.",
+      "color_name": "Purple/Magenta",
+      "rgb": [
+        242,
+        17,
+        192
+      ],
+      "hsv_tolerance": {
+        "hue": 8,
+        "saturation": 40,
+        "value": 40
+      }
+    },
+    "_pending_clarification": "#12's exact source indicator is still unconfirmed (color is confirmed). Not required for trade execution, so left as-is."
+  },
+  "candle_colors": {
+    "bullish_rgb": [
+      0,
+      255,
+      0
+    ],
+    "bearish_rgb": [
+      255,
+      0,
+      0
+    ]
+  },
+  "history": {
+    "max_frames_kept": 60,
+    "divergence_lookback_frames": 12,
+    "higher_high_lookback_frames": 8,
+    "ttl_seconds": 600
+  },
+  "noise_filter": {
+    "median_filter": 3,
+    "gaussian_kernel": 5,
+    "minimum_line_length": 20,
+    "minimum_contour_area": 12
+  },
+  "install_order": [
+    {
+      "slot": 1,
+      "panel": "indicator",
+      "mt5_name": "Bollinger Bands",
+      "display_name": "Bands34 (#1 White)",
+      "params": {
+        "Period": 34,
+        "Deviation": 1.618,
+        "Shift": 0
+      },
+      "color": "White",
+      "notes": "Stationary reference bands. Apply first on indicator panel."
+    },
+    {
+      "slot": 2,
+      "panel": "indicator",
+      "mt5_name": "Bollinger Bands",
+      "display_name": "Bands17 (#2 Bright Green)",
+      "params": {
+        "Period": 17,
+        "Deviation": 2.618,
+        "Shift": 0
+      },
+      "color": "Lime / Bright Green",
+      "notes": "Motional bands. Same panel as #1."
+    },
+    {
+      "slot": 3,
+      "panel": "indicator",
+      "mt5_name": "Williams' Percent Range",
+      "display_name": "Williams %R 60 (#3 Orange)",
+      "params": {
+        "Period": 60
+      },
+      "color": "Orange",
+      "notes": "Own subwindow or stacked per AEGIS template screenshot."
+    },
+    {
+      "slot": 4,
+      "panel": "indicator",
+      "mt5_name": "Moving Average",
+      "display_name": "MA7 (#4 Magenta)",
+      "params": {
+        "Period": 7,
+        "Method": "SMA",
+        "Apply to": "Close"
+      },
+      "color": "Magenta",
+      "notes": "Must render magenta for CV detection."
+    },
+    {
+      "slot": 5,
+      "panel": "indicator",
+      "mt5_name": "Commodity Channel Index",
+      "display_name": "CCI6 (#5 Red)",
+      "params": {
+        "Period": 6
+      },
+      "color": "Red",
+      "notes": "Red line only."
+    },
+    {
+      "slot": 6,
+      "panel": "indicator",
+      "mt5_name": "Relative Strength Index",
+      "display_name": "RSI9 (#6 Cyan)",
+      "params": {
+        "Period": 9
+      },
+      "color": "Cyan",
+      "notes": "Cyan/cobalt line."
+    },
+    {
+      "slot": 7,
+      "panel": "price",
+      "mt5_name": "Bollinger Bands",
+      "display_name": "Main BB White (#7)",
+      "params": {
+        "Period": 34,
+        "Deviation": 1.618
+      },
+      "color": "White",
+      "notes": "On main price chart."
+    },
+    {
+      "slot": 8,
+      "panel": "price",
+      "mt5_name": "Bollinger Bands",
+      "display_name": "Main BB Cobalt (#8)",
+      "params": {
+        "Period": 17,
+        "Deviation": 2.618
+      },
+      "color": "Cyan / Cobalt",
+      "notes": "On main price chart."
+    }
+  ],
+  "client_checklist": {
+    "must_match_colors": true,
+    "must_match_order": true,
+    "note": "MT5 Mobile does not allow third-party apps to inject indicators. Clients must apply this template once. Brain rejects mismatched colors/layout via CV confidence."
+  }
+}

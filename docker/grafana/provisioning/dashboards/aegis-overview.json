@@ -1,0 +1,70 @@
+{
+  "title": "AEGIS Platform Overview",
+  "uid": "aegis-overview",
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Active MT5 Workers (this instance)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "aegis_active_workers", "refId": "A" }]
+    },
+    {
+      "id": 2,
+      "title": "Devices Online",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "expr": "aegis_devices_online", "refId": "A" }],
+      "fieldConfig": { "defaults": { "thresholds": {
+        "mode": "absolute",
+        "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }]
+      } } }
+    },
+    {
+      "id": 3,
+      "title": "Devices Total (ever reported)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "targets": [{ "expr": "aegis_devices_total", "refId": "A" }]
+    },
+    {
+      "id": 4,
+      "title": "Active Subscriptions",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "targets": [{ "expr": "aegis_subscriptions_active", "refId": "A" }]
+    },
+    {
+      "id": 5,
+      "title": "Devices Online vs Total (24h)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        { "expr": "aegis_devices_online", "legendFormat": "Online", "refId": "A" },
+        { "expr": "aegis_devices_total", "legendFormat": "Total", "refId": "B" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "HTTP Request Rate",
+      "type": "timeseries",
+      "description": "From prometheus-fastapi-instrumentator's default metrics. Verify the exact metric name in your Prometheus instance (Grafana Explore -> type 'http_requests' and autocomplete) if this panel shows no data - the instrumentator library's default metric name has varied across versions.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total[5m])) by (handler, status)", "legendFormat": "{{handler}} [{{status}}]", "refId": "A" }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Active Workers Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "targets": [{ "expr": "aegis_active_workers", "refId": "A" }]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

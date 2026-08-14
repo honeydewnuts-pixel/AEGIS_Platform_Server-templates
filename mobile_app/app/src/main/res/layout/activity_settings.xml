@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Backend"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1565C0"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Brain Server URL"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="10dp"/>
+
+        <EditText
+            android:id="@+id/etServerIp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="https://your-service.onrender.com"
+            android:inputType="textUri"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="API Key"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
+
+        <EditText
+            android:id="@+id/etApiKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Admin or per-account key"
+            android:inputType="textPassword"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Account ID"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
+
+        <EditText
+            android:id="@+id/etAccountId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Leave blank to use this device's ID"
+            android:inputType="text"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MT5 Broker"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1565C0"
+            android:layout_marginTop="22dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Credentials are sent to the backend vault (encrypted at rest) and used to start the MT5 worker."
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Broker name"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
+
+        <EditText
+            android:id="@+id/etMt5Broker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="MetaTrader5"
+            android:inputType="text"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MT5 Server"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
+
+        <EditText
+            android:id="@+id/etMt5Server"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g. ICMarketsSC-Demo"
+            android:inputType="text"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MT5 Login (account number)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
+
+        <EditText
+            android:id="@+id/etMt5Login"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="12345678"
+            android:inputType="number"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MT5 Trading password"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
+
+        <EditText
+            android:id="@+id/etMt5Password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Trading password"
+            android:inputType="textPassword"
+            android:layout_marginTop="4dp"/>
+
+        <CheckBox
+            android:id="@+id/cbMt5Execution"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Allow backend to execute trades (execution_enabled)"
+            android:layout_marginTop="12dp"
+            android:checked="true"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Safety"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1565C0"
+            android:layout_marginTop="22dp"/>
+
+        <CheckBox
+            android:id="@+id/cbAutoExecute"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Auto-execute BUY/SELL via Accessibility"
+            android:layout_marginTop="8dp"
+            android:checked="false"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Min confidence to execute (0.0–1.0)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
+
+        <EditText
+            android:id="@+id/etMinConfidence"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="0.70"
+            android:inputType="numberDecimal"
+            android:layout_marginTop="4dp"/>
+
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SAVE SETTINGS"
+            android:layout_marginTop="20dp"/>
+
+        <Button
+            android:id="@+id/btnSaveAndConnect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SAVE &amp; CONNECT MT5"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="24dp"/>
+
+    </LinearLayout>
+</ScrollView>

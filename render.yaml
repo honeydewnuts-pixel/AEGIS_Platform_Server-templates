@@ -1,0 +1,87 @@
+# Render Blueprint - deploys just the core three services (API + Postgres
+# + Redis) for a first phone-only test pass. Deliberately excludes
+# Prometheus/Grafana/Loki - those add real memory pressure on Render's
+# free-tier RAM budget and aren't needed to test whether the app works.
+#
+# HOW TO USE (entirely from a phone browser, no CLI):
+#   1. Push this file to your repo root (it's already there).
+#   2. On render.com -> New -> Blueprint -> connect this GitHub repo.
+#   3. Render reads this file and provisions all three services.
+#   4. Fill in the "sync: false" secret values in Render's dashboard
+#      (Environment tab per service) - these are intentionally left
+#      blank here rather than committed to the repo.
+#
+# CAVEAT: this hasn't been deployed for real from the environment this
+# was written in (no network access there - see README.md). Render's
+# exact YAML schema/service type names can shift between their docs
+# versions; if the blueprint fails to parse, check the specific field
+# name it complains about against Render's current Blueprint docs -
+# the overall shape (one web service + one postgres + one redis, wired
+# together via env var references) should still be right even if a
+# field name needs a small adjustment.
+
+databases:
+  - name: aegis-postgres
+    plan: free
+    databaseName: aegis
+    user: aegis
+
+services:
+  - type: redis
+    name: aegis-redis
+    plan: free
+    ipAllowList: []   # only reachable from other services in this Render project, not the public internet
+
+  - type: web
+    name: aegis-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    # /health also pings Redis; use / if you prefer a pure process check.
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aegis-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: aegis-redis
+          property: connectionString
+
+      # Fill these in via Render's dashboard (Environment tab) after the
+      # first deploy - not committed here on purpose.
+      - key: AEGIS_MASTER_KEY
+        sync: false
+      - key: ADMIN_BOOTSTRAP_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false   # set to your admin_dashboard/client_portal origins once you know them
+
+      # Only needed once you're testing subscriptions/payments - leave
+      # blank for an initial capture/analyze-only test pass.
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: FLUTTERWAVE_WEBHOOK_HASH
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      - key: DEBUG
+        value: "False"
+      # After losing the admin key: set ADMIN_BOOTSTRAP_KEY to a new secret,
+      # set FORCE_ADMIN_KEY_RESET to "true", redeploy once, then set back to "false".
+      - key: FORCE_ADMIN_KEY_RESET
+        value: "false"
+      - key: MAX_CONCURRENT_WORKERS
+        value: "100"
+      - key: SECRET_KEY
+        sync: false

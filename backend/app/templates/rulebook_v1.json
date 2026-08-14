@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "status": "active",
+  "title": "AEGIS Rulebook v1",
+  "engine": "signal_rule_engine.SignalRuleEngine",
+  "indicator_stack_version": "v1",
+  "description": "Base 4-condition BUY/SELL exhaustion + band filters encoded in SignalRuleEngine.",
+  "changelog": [
+    "Initial production rulebook aligned with colors_config AEGIS_VISION_1.0"
+  ],
+  "rules_summary": [
+    "SELL: uptrend exhaustion (4-condition)",
+    "BUY: downtrend exhaustion (4-condition)",
+    "Optional #7/#8 price-panel filter"
+  ]
+}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AEGIS — Download</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 520px; margin: 40px auto; padding: 0 16px; color: #e6edf3; background: #0b0f14; }
+  a { color: #58a6ff; }
+  .card { background: #131a22; border: 1px solid #223041; border-radius: 8px; padding: 20px; margin-top: 16px; }
+  code { background: #0d1117; padding: 2px 6px; border-radius: 4px; }
+  .muted { color: #8b98a5; font-size: 14px; }
+</style>
+</head>
+<body>
+  <h1>Download AEGIS</h1>
+  <p class="muted">The APK is only available after demo signup or a paid subscription. Each download link is single-use and the install binds to <strong>one phone</strong>.</p>
+  <div class="card">
+    <h3>Paid subscribers</h3>
+    <p>After checkout you receive a one-time <code>download_url</code>. Open it on your phone browser to install. Opening the same link again will fail.</p>
+  </div>
+  <div class="card">
+    <h3>Try demo first</h3>
+    <p>Call <code>POST /api/subscriptions/demo/signup</code> (or use your website form that calls it). You get:</p>
+    <ul class="muted">
+      <li>account_id + mobile API key</li>
+      <li>one-time APK download link</li>
+      <li>brain / chart analysis for 14 days</li>
+      <li><strong>no live trading</strong> until you subscribe</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Device lock</h3>
+    <p class="muted">On first launch the app registers this phone’s ID. Another phone using the same key is blocked until an operator clears the binding.</p>
+  </div>
+</body>
+</html>
