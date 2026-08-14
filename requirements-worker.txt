@@ -9,7 +9,7 @@
 # on the same Windows machine.
 # ============================================================
 
-MetaTrader5==5.0.4993
+MetaTrader5==5.0.6090
 redis==5.2.1
 python-dotenv==1.0.1
 pydantic==2.10.4
