@@ -47,7 +47,7 @@ httpx==0.28.1
 stripe==11.4.1
 sqlalchemy==2.0.36
 alembic==1.14.0
-asyncpg==0.30.0
+asyncpg==0.31.0
 prometheus-fastapi-instrumentator
 slowapi
 opentelemetry-api
