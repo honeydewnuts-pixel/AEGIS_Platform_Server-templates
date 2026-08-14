@@ -36,7 +36,7 @@ jobs:
       # Validates the wrapper jar's checksum against Gradle's official
       # published checksums before trusting it to run anything - catches
       # a tampered or corrupted wrapper jar before it executes.
-      - uses: gradle/actions/wrapper-validation@v3
+      - uses: gradle/actions/wrapper-validation@v6
 
       - name: Lint
         run: ./gradlew lint
