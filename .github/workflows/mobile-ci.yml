@@ -45,14 +45,14 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: aegis-mobile-debug
           path: mobile_app/app/build/outputs/apk/debug/*.apk
 
       - name: Upload lint report (always, even on failure - useful for debugging)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: lint-report
           path: mobile_app/app/build/reports/lint-results-debug.html
