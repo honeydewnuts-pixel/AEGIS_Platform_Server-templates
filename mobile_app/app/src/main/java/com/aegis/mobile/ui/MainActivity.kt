@@ -94,14 +94,29 @@ class MainActivity : AppCompatActivity() {
         minimizeBtn = findViewById(R.id.minimizeBtn)
         indicatorSetupBtn = findViewById(R.id.indicatorSetupBtn)
 
+        // High-contrast text on dark background (theme alone is not always enough)
+        val textLight = Color.parseColor("#FFFFFF")
+        val textMuted = Color.parseColor("#C5D0E0")
+        val textTeal = Color.parseColor("#5EEAD4")
+        val textGold = Color.parseColor("#F0D78C")
+        statusText.setTextColor(textLight)
+        detailsText.setTextColor(textLight)
+        healthText.setTextColor(textMuted)
+        diagText.setTextColor(textTeal)
+        confidenceText.setTextColor(textTeal)
+        ruleText.setTextColor(textMuted)
+        runningStateText.setTextColor(textMuted)
+
+
         viewModel = ViewModelProvider(this)[StatusViewModel::class.java]
 
         viewModel.signal.observe(this) { signal ->
             statusText.text = signal
+            statusText.setTextColor(Color.WHITE)
             when (signal) {
-                "BUY" -> statusText.setBackgroundColor(Color.parseColor("#2E7D32"))
-                "SELL" -> statusText.setBackgroundColor(Color.parseColor("#C62828"))
-                else -> statusText.setBackgroundColor(Color.parseColor("#616161"))
+                "BUY" -> statusText.setBackgroundColor(Color.parseColor("#15803D"))
+                "SELL" -> statusText.setBackgroundColor(Color.parseColor("#B91C1C"))
+                else -> statusText.setBackgroundColor(Color.parseColor("#334155"))
             }
 
             lifecycleScope.launch {
@@ -316,7 +331,7 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
         stopBtn.alpha = if (running) 1f else 0.45f
         runningStateText.text = if (running) "● Running — capture active" else "○ Stopped"
         runningStateText.setTextColor(
-            if (running) Color.parseColor("#2E7D32") else Color.parseColor("#888888")
+            if (running) Color.parseColor("#4ADE80") else Color.parseColor("#C5D0E0")
         )
     }
 
@@ -341,9 +356,23 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
     }
 
     private fun requestScreenCapturePermission() {
-        val projectionManager =
-            getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
+        lifecycleScope.launch {
+            val prefs = applicationContext.dataStore.data.first()
+            val key = prefs[PrefKeys.API_KEY]?.trim().orEmpty()
+            val url = prefs[PrefKeys.SERVER_URL]?.trim().orEmpty()
+            if (key.isEmpty() || url.isEmpty()) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "Open SETTINGS and set Server URL + API Key first (reinstall clears them)",
+                    Toast.LENGTH_LONG
+                ).show()
+                startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+                return@launch
+            }
+            val projectionManager =
+                getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
+        }
     }
 
     private fun connectMt5FromPrefs() {

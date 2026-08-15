@@ -2,7 +2,8 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:background="#121A2A">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -16,7 +17,7 @@
             android:text="Backend"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#1565C0"/>
+            android:textColor="#F0D78C"/>
 
         <TextView
             android:layout_width="wrap_content"
@@ -24,6 +25,7 @@
             android:text="Brain Server URL"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="10dp"/>
 
         <EditText
@@ -32,6 +34,9 @@
             android:layout_height="wrap_content"
             android:hint="https://your-service.onrender.com"
             android:inputType="textUri"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8B9BB4"
+            android:backgroundTint="#3B82F6"
             android:layout_marginTop="4dp"/>
 
         <TextView
@@ -40,6 +45,7 @@
             android:text="API Key"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="12dp"/>
 
         <EditText
@@ -48,6 +54,9 @@
             android:layout_height="wrap_content"
             android:hint="Admin or per-account key"
             android:inputType="textPassword"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8B9BB4"
+            android:backgroundTint="#3B82F6"
             android:layout_marginTop="4dp"/>
 
         <TextView
@@ -56,6 +65,7 @@
             android:text="Account ID"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="12dp"/>
 
         <EditText
@@ -64,6 +74,9 @@
             android:layout_height="wrap_content"
             android:hint="Leave blank to use this device's ID"
             android:inputType="text"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8B9BB4"
+            android:backgroundTint="#3B82F6"
             android:layout_marginTop="4dp"/>
 
         <TextView
@@ -72,7 +85,7 @@
             android:text="MT5 Broker"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#1565C0"
+            android:textColor="#F0D78C"
             android:layout_marginTop="22dp"/>
 
         <TextView
@@ -80,7 +93,7 @@
             android:layout_height="wrap_content"
             android:text="Credentials are sent to the backend vault (encrypted at rest) and used to start the MT5 worker."
             android:textSize="12sp"
-            android:textColor="#666666"
+            android:textColor="#C5D0E0"
             android:layout_marginTop="4dp"/>
 
         <TextView
@@ -89,6 +102,7 @@
             android:text="Broker name"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="12dp"/>
 
         <EditText
@@ -97,6 +111,9 @@
             android:layout_height="wrap_content"
             android:hint="MetaTrader5"
             android:inputType="text"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8B9BB4"
+            android:backgroundTint="#3B82F6"
             android:layout_marginTop="4dp"/>
 
         <TextView
@@ -105,6 +122,7 @@
             android:text="MT5 Server"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="12dp"/>
 
         <EditText
@@ -113,6 +131,9 @@
             android:layout_height="wrap_content"
             android:hint="e.g. ICMarketsSC-Demo"
             android:inputType="text"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8B9BB4"
+            android:backgroundTint="#3B82F6"
             android:layout_marginTop="4dp"/>
 
         <TextView
@@ -121,6 +142,7 @@
             android:text="MT5 Login (account number)"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="12dp"/>
 
         <EditText
@@ -129,6 +151,9 @@
             android:layout_height="wrap_content"
             android:hint="12345678"
             android:inputType="number"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8B9BB4"
+            android:backgroundTint="#3B82F6"
             android:layout_marginTop="4dp"/>
 
         <TextView
@@ -137,6 +162,7 @@
             android:text="MT5 Trading password"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="12dp"/>
 
         <EditText
@@ -145,6 +171,9 @@
             android:layout_height="wrap_content"
             android:hint="Trading password"
             android:inputType="textPassword"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8B9BB4"
+            android:backgroundTint="#3B82F6"
             android:layout_marginTop="4dp"/>
 
         <CheckBox
@@ -153,6 +182,7 @@
             android:layout_height="wrap_content"
             android:text="Allow backend to execute trades (execution_enabled)"
             android:layout_marginTop="12dp"
+            android:textColor="#FFFFFF"
             android:checked="true"/>
 
         <TextView
@@ -161,7 +191,7 @@
             android:text="Safety"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#1565C0"
+            android:textColor="#F0D78C"
             android:layout_marginTop="22dp"/>
 
         <CheckBox
@@ -170,6 +200,7 @@
             android:layout_height="wrap_content"
             android:text="Auto-execute BUY/SELL via Accessibility"
             android:layout_marginTop="8dp"
+            android:textColor="#FFFFFF"
             android:checked="false"/>
 
         <TextView
@@ -178,6 +209,7 @@
             android:text="Min confidence to execute (0.0–1.0)"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="12dp"/>
 
         <EditText
@@ -186,6 +218,9 @@
             android:layout_height="wrap_content"
             android:hint="0.70"
             android:inputType="numberDecimal"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#8B9BB4"
+            android:backgroundTint="#3B82F6"
             android:layout_marginTop="4dp"/>
 
         <Button
@@ -193,6 +228,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="SAVE SETTINGS"
+            android:textColor="#FFFFFF"
+            android:background="#2563EB"
             android:layout_marginTop="20dp"/>
 
         <Button
@@ -200,6 +237,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="SAVE &amp; CONNECT MT5"
+            android:textColor="#FFFFFF"
+            android:background="#0D9488"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="24dp"/>
 

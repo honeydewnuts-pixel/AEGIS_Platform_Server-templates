@@ -9,6 +9,15 @@
         <item name="android:windowBackground">@color/aegis_bg</item>
         <item name="android:textColorPrimary">@color/aegis_text</item>
         <item name="android:textColorSecondary">@color/aegis_muted</item>
-        <item name="colorButtonNormal">@color/btn_secondary</item>
+        <item name="android:textColor">@color/aegis_text</item>
+        <item name="android:textColorHint">@color/aegis_muted</item>
+        <item name="colorOnPrimary">@color/aegis_text</item>
+        <item name="colorOnSurface">@color/aegis_text</item>
+        <item name="android:buttonStyle">@style/Widget.AEGIS.Button</item>
+    </style>
+
+    <style name="Widget.AEGIS.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="backgroundTint">@null</item>
     </style>
 </resources>
