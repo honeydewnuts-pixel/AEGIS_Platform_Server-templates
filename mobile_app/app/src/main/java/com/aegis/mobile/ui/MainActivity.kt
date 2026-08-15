@@ -3,6 +3,7 @@ package com.aegis.mobile.ui
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
@@ -278,10 +279,69 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
         }
     }
 
-    /** Send AEGIS to background while capture continues in the foreground service. */
+    /**
+     * Put AEGIS in the background and prefer bringing MetaTrader 5 to the front
+     * so MediaProjection records the chart (not this UI).
+     * Some OEMs ignore moveTaskToBack alone — HOME + explicit MT5 launch is more reliable.
+     */
     private fun minimizeApp() {
-        moveTaskToBack(true)
-        Toast.makeText(this, "Minimized — capture keeps running if Start is active", Toast.LENGTH_SHORT).show()
+        val mt5Launched = tryLaunchMt5()
+        // Go to home / leave this task so we are not covering MT5.
+        try {
+            val home = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(home)
+        } catch (_: Exception) {
+            moveTaskToBack(true)
+        }
+        // Also try moveTaskToBack for devices that keep the task in recents cleanly.
+        try {
+            moveTaskToBack(true)
+        } catch (_: Exception) {
+        }
+        val msg = if (mt5Launched) {
+            "Opened MT5 — capture continues in background"
+        } else {
+            "AEGIS minimized — open MT5 full-screen for chart captures"
+        }
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    }
+
+    private fun tryLaunchMt5(): Boolean {
+        val candidates = listOf(
+            "net.metaquotes.metatrader5",
+            "net.metaquotes.metatrader5x",
+        )
+        val pm = packageManager
+        for (pkg in candidates) {
+            try {
+                val launch = pm.getLaunchIntentForPackage(pkg)
+                if (launch != null) {
+                    launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    startActivity(launch)
+                    return true
+                }
+            } catch (_: Exception) {
+            }
+        }
+        // Broader search for broker-skinned MT5 packages
+        try {
+            @Suppress("DEPRECATION")
+            val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+            for (app in packages) {
+                val name = app.packageName.lowercase()
+                if (name.contains("metatrader5") || name.contains("metatrader.5")) {
+                    val launch = pm.getLaunchIntentForPackage(app.packageName) ?: continue
+                    launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    startActivity(launch)
+                    return true
+                }
+            }
+        } catch (_: Exception) {
+        }
+        return false
     }
 
     private suspend fun registerDeviceIfNeeded() {

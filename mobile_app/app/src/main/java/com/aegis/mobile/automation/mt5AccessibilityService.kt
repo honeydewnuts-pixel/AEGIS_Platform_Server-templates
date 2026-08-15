@@ -63,23 +63,41 @@ class Mt5AccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         instance = this
         val info = AccessibilityServiceInfo().apply {
-            // Track window changes so we know when MT5 is foreground.
             eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
                 AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-            // Listen to all packages for foreground detection; clicks still target MT5.
             packageNames = null
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            flags = AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+            flags = AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
+                AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
         }
         this.serviceInfo = info
-        Log.d("AEGIS-Auto", "Accessibility Service Connected")
+        // MT5 may already be open before AEGIS starts — sample the active window now.
+        refreshCurrentForeground()
+        Log.d("AEGIS-Auto", "Accessibility Service Connected; mt5Fg=$isMt5Foreground")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            val pkg = event.packageName?.toString()
-            setForegroundPackage(pkg)
+        when (event.eventType) {
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                setForegroundPackage(event.packageName?.toString())
+            }
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
+                // Keep status fresh if MT5 was already running before we connected.
+                refreshCurrentForeground()
+            }
+        }
+    }
+
+    /** Read the active window package (works when MT5 was already in front). */
+    private fun refreshCurrentForeground() {
+        try {
+            val pkg = rootInActiveWindow?.packageName?.toString()
+            if (pkg != null) {
+                setForegroundPackage(pkg)
+            }
+        } catch (e: Exception) {
+            Log.w("AEGIS-Auto", "refreshCurrentForeground: ${e.message}")
         }
     }
 
