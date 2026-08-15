@@ -113,7 +113,6 @@
 
             <TextView
                 android:id="@+id/statusText"
-                android:textColor="#FFFFFF"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="HOLD"
