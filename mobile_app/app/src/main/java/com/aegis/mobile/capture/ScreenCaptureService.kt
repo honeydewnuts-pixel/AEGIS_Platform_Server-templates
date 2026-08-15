@@ -309,8 +309,8 @@ class ScreenCaptureService : Service() {
     }
 
     private suspend fun trySendOnce(file: File, accountId: String, capturedAtMs: Long): Boolean {
+        val t0 = System.currentTimeMillis()
         return try {
-            val t0 = System.currentTimeMillis()
             val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
             // Explicit filename + content type helps proxies that strip part headers.
             val body = MultipartBody.Part.createFormData("image", "capture.jpg", requestFile)

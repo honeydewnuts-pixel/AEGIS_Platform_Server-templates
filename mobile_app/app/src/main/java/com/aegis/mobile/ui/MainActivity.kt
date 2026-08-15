@@ -222,6 +222,29 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
         lifecycleScope.launch { registerDeviceIfNeeded() }
     }
 
+
+    private fun toggleFloatingHud() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
+            && !Settings.canDrawOverlays(this)
+        ) {
+            startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+            )
+            return
+        }
+        val intent = Intent(this, FloatingHudService::class.java)
+        // Toggle: if already running, stop; otherwise start
+        try {
+            stopService(intent)
+        } catch (_: Exception) {
+        }
+        // Start as a regular service (overlay HUD)
+        startService(intent)
+    }
+
     private suspend fun registerDeviceIfNeeded() {
         try {
             val prefs = applicationContext.dataStore.data.first()
