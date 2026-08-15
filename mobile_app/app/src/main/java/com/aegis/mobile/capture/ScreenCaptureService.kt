@@ -268,16 +268,16 @@ class ScreenCaptureService : Service() {
     }
 
     private fun captureAndSend() {
-        // Only capture when MetaTrader 5 is the foreground app.
-        // MediaProjection sees the full display; gating avoids uploading
-        // non-chart screens (home, browser, etc.) to the brain.
+        // Always capture while START is active. MediaProjection records the
+        // *current* display only — Android cannot snapshot an app that is not
+        // visible. Keep MT5 open full-screen (AEGIS minimized) for chart frames.
+        // Accessibility still reports whether MT5 is in front (diagnostics only).
         val mt5Fg = com.aegis.mobile.automation.Mt5AccessibilityService.isMt5Foreground
         HealthStatus.mt5Foreground.postValue(mt5Fg)
-        if (!mt5Fg) {
-            HealthStatus.recordSkippedNotMt5()
-            updateNotification("Waiting for MT5 foreground…")
-            return
-        }
+        updateNotification(
+            if (mt5Fg) "Capturing (MT5 in front)"
+            else "Capturing screen — open MT5 full-screen for chart frames"
+        )
 
         withBriefWakeLock {
             val image = imageReader?.acquireLatestImage()

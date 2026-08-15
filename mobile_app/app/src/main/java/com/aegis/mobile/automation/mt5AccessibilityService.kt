@@ -13,10 +13,24 @@ class Mt5AccessibilityService : AccessibilityService() {
     companion object {
         const val MT5_PACKAGE = "net.metaquotes.metatrader5"
 
+        /** Official + common broker-skinned package id prefixes. */
+        private val MT5_PACKAGES = setOf(
+            "net.metaquotes.metatrader5",
+            "net.metaquotes.metatrader5x",
+        )
+
+        private fun isMt5Package(pkg: String?): Boolean {
+            if (pkg.isNullOrBlank()) return false
+            if (pkg in MT5_PACKAGES) return true
+            // Broker builds often embed "metatrader5" in the package name.
+            val lower = pkg.lowercase()
+            return lower.contains("metatrader5") || lower.contains("metatrader.5")
+        }
+
         @Volatile
         var instance: Mt5AccessibilityService? = null
 
-        /** Updated from window-state events; read by ScreenCaptureService. */
+        /** Updated from window-state events; diagnostics only (capture is not gated). */
         @Volatile
         var isMt5Foreground: Boolean = false
             private set
@@ -39,7 +53,7 @@ class Mt5AccessibilityService : AccessibilityService() {
         }
 
         internal fun setForegroundPackage(pkg: String?) {
-            val active = pkg == MT5_PACKAGE
+            val active = isMt5Package(pkg)
             isMt5Foreground = active
             HealthStatus.mt5Foreground.postValue(active)
         }
