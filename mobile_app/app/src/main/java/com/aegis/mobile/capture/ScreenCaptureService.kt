@@ -63,6 +63,8 @@ class ScreenCaptureService : Service() {
     companion object {
         const val EXTRA_RESULT_CODE = "result_code"
         const val EXTRA_RESULT_DATA = "result_data"
+        const val ACTION_STOP = "com.aegis.mobile.STOP_CAPTURE"
+        const val ACTION_START = "com.aegis.mobile.START_CAPTURE"
         private const val NOTIF_ID = 1001
         private const val CAPTURE_INTERVAL = 3000L      // 3 seconds
         private const val HEARTBEAT_INTERVAL = 60000L   // 1 minute - independent of the capture loop
@@ -82,30 +84,77 @@ class ScreenCaptureService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Explicit stop from the UI — do not restart.
+        if (intent?.action == ACTION_STOP) {
+            Log.i("AEGIS", "Stop capture requested")
+            stopCaptureSession()
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, 0) ?: 0
-        val resultData = intent?.getParcelableExtra<Intent>(EXTRA_RESULT_DATA) ?: return START_NOT_STICKY
+        val resultData = intent?.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
+        if (resultData == null || resultCode == 0) {
+            // System may restart a sticky service without the MediaProjection token.
+            // We cannot capture without a fresh user grant — shut down cleanly.
+            Log.w("AEGIS", "No MediaProjection token; not restarting capture")
+            HealthStatus.mediaProjectionActive.postValue(false)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        // If already running, ignore duplicate start intents.
+        if (mediaProjection != null && HealthStatus.mediaProjectionActive.value == true) {
+            Log.i("AEGIS", "Capture already active")
+            return START_NOT_STICKY
+        }
 
         mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, resultData)
         mediaProjection?.registerCallback(object : MediaProjection.Callback() {
             override fun onStop() {
-                // The OS or user revoked the capture session (this can happen on some
-                // OEM skins, or after certain system events). We can't silently resume -
-                // MediaProjection requires a fresh user-granted token - so surface it
-                // clearly instead of quietly doing nothing.
-                Log.w("AEGIS", "MediaProjection stopped unexpectedly.")
-                HealthStatus.mediaProjectionActive.postValue(false)
-                updateNotification("Capture stopped - reopen AEGIS to resume")
+                Log.w("AEGIS", "MediaProjection stopped by system/user")
+                handler.post {
+                    stopCaptureSession()
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
             }
         }, handler)
 
         HealthStatus.mediaProjectionActive.postValue(true)
         setupVirtualDisplay()
         scope.launch { refreshCaptureRoi() }
+        handler.removeCallbacks(captureRunnable)
+        handler.removeCallbacks(heartbeatRunnable)
+        handler.removeCallbacks(cacheDrainRunnable)
+        handler.removeCallbacks(roiRefreshRunnable)
         handler.postDelayed(captureRunnable, CAPTURE_INTERVAL)
         handler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL)
         handler.postDelayed(cacheDrainRunnable, CACHE_DRAIN_INTERVAL)
         handler.postDelayed(roiRefreshRunnable, ROI_REFRESH_INTERVAL)
-        return START_STICKY
+        updateNotification("Capturing MT5 screenshots")
+        // NOT sticky: prevents auto-restart without a valid projection token (which
+        // made Stop appear to "restart" capture and left the UI inconsistent).
+        return START_NOT_STICKY
+    }
+
+    private fun stopCaptureSession() {
+        handler.removeCallbacks(captureRunnable)
+        handler.removeCallbacks(heartbeatRunnable)
+        handler.removeCallbacks(cacheDrainRunnable)
+        handler.removeCallbacks(roiRefreshRunnable)
+        try { virtualDisplay?.release() } catch (_: Exception) {}
+        virtualDisplay = null
+        try { mediaProjection?.stop() } catch (_: Exception) {}
+        mediaProjection = null
+        try { imageReader?.close() } catch (_: Exception) {}
+        imageReader = null
+        if (wakeLock?.isHeld == true) {
+            try { wakeLock?.release() } catch (_: Exception) {}
+        }
+        HealthStatus.mediaProjectionActive.postValue(false)
+        Log.i("AEGIS", "Capture session cleaned up")
     }
 
     private fun setupVirtualDisplay() {
@@ -420,17 +469,9 @@ class ScreenCaptureService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
-        handler.removeCallbacks(captureRunnable)
-        handler.removeCallbacks(heartbeatRunnable)
-        handler.removeCallbacks(cacheDrainRunnable)
-        handler.removeCallbacks(roiRefreshRunnable)
-        if (wakeLock?.isHeld == true) wakeLock?.release()
-        virtualDisplay?.release()
-        mediaProjection?.stop()
-        imageReader?.close()
-        HealthStatus.mediaProjectionActive.postValue(false)
+        stopCaptureSession()
         scope.cancel()
+        super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

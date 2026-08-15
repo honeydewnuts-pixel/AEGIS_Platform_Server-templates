@@ -30,7 +30,22 @@ class FloatingHudService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_HIDE -> {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            else -> {
+                // SHOW or null — ensure bubble exists (onCreate already built it)
+                isRunning = true
+            }
+        }
+        return START_STICKY
+    }
+
     override fun onCreate() {
+        isRunning = true
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -157,14 +172,22 @@ class FloatingHudService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
-        if (bubble != null) {
-            windowManager?.removeView(bubble)
-            bubble = null
+        isRunning = false
+        try {
+            if (bubble != null) {
+                windowManager?.removeView(bubble)
+                bubble = null
+            }
+        } catch (_: Exception) {
         }
+        super.onDestroy()
     }
 
     companion object {
+        @Volatile
+        @JvmField
+        var isRunning: Boolean = false
+
         const val ACTION_SHOW = "com.aegis.mobile.HUD_SHOW"
         const val ACTION_HIDE = "com.aegis.mobile.HUD_HIDE"
     }

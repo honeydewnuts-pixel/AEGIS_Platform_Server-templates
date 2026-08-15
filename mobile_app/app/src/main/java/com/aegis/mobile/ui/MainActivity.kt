@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var accessibilityBtn: Button
     private lateinit var connectMt5Btn: Button
     private lateinit var floatHudBtn: Button
+    private lateinit var minimizeBtn: Button
     private lateinit var indicatorSetupBtn: Button
 
     private var captureRunning = false
@@ -87,6 +88,7 @@ class MainActivity : AppCompatActivity() {
         accessibilityBtn = findViewById(R.id.accessibilityBtn)
         connectMt5Btn = findViewById(R.id.connectMt5Btn)
         floatHudBtn = findViewById(R.id.floatHudBtn)
+        minimizeBtn = findViewById(R.id.minimizeBtn)
         indicatorSetupBtn = findViewById(R.id.indicatorSetupBtn)
 
         viewModel = ViewModelProvider(this)[StatusViewModel::class.java]
@@ -195,7 +197,10 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
         }
         HealthStatus.lastCaptureTimeMs.observe(this) { refreshHealth() }
         HealthStatus.consecutiveFailures.observe(this) { refreshHealth() }
-        HealthStatus.mediaProjectionActive.observe(this) { refreshHealth() }
+        HealthStatus.mediaProjectionActive.observe(this) { active ->
+            setCaptureRunning(active == true)
+            refreshHealth()
+        }
         HealthStatus.pendingCacheCount.observe(this) { refreshHealth() }
         HealthStatus.backendReachable.observe(this) { refreshHealth() }
         HealthStatus.lastHttpCode.observe(this) { refreshHealth() }
@@ -213,6 +218,12 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
         accessibilityBtn.setOnClickListener { openAccessibilitySettings() }
         connectMt5Btn.setOnClickListener { connectMt5FromPrefs() }
         floatHudBtn.setOnClickListener { toggleFloatingHud() }
+        minimizeBtn.setOnClickListener { minimizeApp() }
+        runningStateText.setOnClickListener { minimizeApp() }
+        runningStateText.setOnLongClickListener {
+            minimizeApp()
+            true
+        }
         indicatorSetupBtn.setOnClickListener {
             startActivity(Intent(this, IndicatorSetupActivity::class.java))
         }
@@ -224,9 +235,8 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
 
 
     private fun toggleFloatingHud() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
-            && !Settings.canDrawOverlays(this)
-        ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "Allow display over other apps for the floating HUD", Toast.LENGTH_LONG).show()
             startActivity(
                 Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -235,14 +245,25 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
             )
             return
         }
-        val intent = Intent(this, FloatingHudService::class.java)
-        // Toggle: if already running, stop; otherwise start
-        try {
-            stopService(intent)
-        } catch (_: Exception) {
+        if (FloatingHudService.isRunning) {
+            val hide = Intent(this, FloatingHudService::class.java).apply {
+                action = FloatingHudService.ACTION_HIDE
+            }
+            stopService(hide)
+            Toast.makeText(this, "Floating HUD hidden", Toast.LENGTH_SHORT).show()
+        } else {
+            val show = Intent(this, FloatingHudService::class.java).apply {
+                action = FloatingHudService.ACTION_SHOW
+            }
+            startService(show)
+            Toast.makeText(this, "Floating HUD on — drag to move, tap to expand", Toast.LENGTH_LONG).show()
         }
-        // Start as a regular service (overlay HUD)
-        startService(intent)
+    }
+
+    /** Send AEGIS to background while capture continues in the foreground service. */
+    private fun minimizeApp() {
+        moveTaskToBack(true)
+        Toast.makeText(this, "Minimized — capture keeps running if Start is active", Toast.LENGTH_SHORT).show()
     }
 
     private suspend fun registerDeviceIfNeeded() {
@@ -288,16 +309,30 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
         captureRunning = running
         startBtn.isEnabled = !running
         stopBtn.isEnabled = running
-        runningStateText.text = if (running) "● Running" else "Stopped"
+        startBtn.alpha = if (running) 0.45f else 1f
+        stopBtn.alpha = if (running) 1f else 0.45f
+        runningStateText.text = if (running) "● Running — capture active" else "○ Stopped"
         runningStateText.setTextColor(
             if (running) Color.parseColor("#2E7D32") else Color.parseColor("#888888")
         )
     }
 
     private fun stopCapture() {
-        stopService(Intent(this, ScreenCaptureService::class.java))
-        setCaptureRunning(false)
+        // Explicit ACTION_STOP so the service cleans up MediaProjection and does not
+        // get auto-restarted without a token (which looked like "Start again by itself").
+        val stopIntent = Intent(this, ScreenCaptureService::class.java).apply {
+            action = ScreenCaptureService.ACTION_STOP
+        }
+        try {
+            startService(stopIntent)
+        } catch (_: Exception) {
+        }
+        try {
+            stopService(Intent(this, ScreenCaptureService::class.java))
+        } catch (_: Exception) {
+        }
         HealthStatus.mediaProjectionActive.postValue(false)
+        setCaptureRunning(false)
         Toast.makeText(this, "AEGIS Stopped", Toast.LENGTH_SHORT).show()
         healthText.text = "Stopped by user"
     }

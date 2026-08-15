@@ -148,6 +148,14 @@
             android:layout_marginTop="8dp"/>
 
         <Button
+            android:id="@+id/minimizeBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="MINIMIZE (keep capture running)"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"/>
+
+        <Button
             android:id="@+id/floatHudBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
