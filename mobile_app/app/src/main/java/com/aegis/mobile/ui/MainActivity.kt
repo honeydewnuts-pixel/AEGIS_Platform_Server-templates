@@ -360,14 +360,14 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
             val prefs = applicationContext.dataStore.data.first()
             val key = prefs[PrefKeys.API_KEY]?.trim().orEmpty()
             val url = prefs[PrefKeys.SERVER_URL]?.trim().orEmpty()
+            // Capture can run without a live backend (local MT5 screenshots + offline cache).
+            // Uploads only succeed after the API is deployed (e.g. Render) and URL + key are set.
             if (key.isEmpty() || url.isEmpty()) {
                 Toast.makeText(
                     this@MainActivity,
-                    "Open SETTINGS and set Server URL + API Key first (reinstall clears them)",
+                    "No Server URL/API Key — capture will run, uploads wait until backend is on Render",
                     Toast.LENGTH_LONG
                 ).show()
-                startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
-                return@launch
             }
             val projectionManager =
                 getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
