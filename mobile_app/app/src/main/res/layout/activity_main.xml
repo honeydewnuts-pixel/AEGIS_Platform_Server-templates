@@ -2,7 +2,8 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:background="@color/aegis_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,20 +16,31 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="AEGIS"
-            android:textSize="22sp"
+            android:textSize="26sp"
             android:textStyle="bold"
+            android:textColor="@color/aegis_gold"
             android:gravity="center"
-            android:layout_marginBottom="4dp"/>
+            android:letterSpacing="0.12"
+            android:layout_marginBottom="2dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Intelligence · Capture · Decide"
+            android:textSize="12sp"
+            android:textColor="@color/aegis_teal"
+            android:gravity="center"
+            android:layout_marginBottom="10dp"/>
 
         <TextView
             android:id="@+id/runningStateText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Stopped"
-            android:textSize="13sp"
+            android:text="○ Stopped"
+            android:textSize="14sp"
             android:gravity="center"
-            android:textColor="#888888"
-            android:layout_marginBottom="12dp"/>
+            android:textColor="@color/aegis_muted"
+            android:layout_marginBottom="14dp"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -38,79 +50,108 @@
             <Button
                 android:id="@+id/startBtn"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_weight="1"
                 android:text="START"
-                android:textSize="16sp"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/btn_start_bg"
                 android:padding="14dp"/>
 
             <Button
                 android:id="@+id/stopBtn"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_weight="1"
                 android:text="STOP"
-                android:textSize="16sp"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/btn_stop_bg"
                 android:padding="14dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="10dp"
                 android:enabled="false"/>
         </LinearLayout>
 
         <Button
             android:id="@+id/settingsBtn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:text="SETTINGS"
             android:textSize="15sp"
-            android:layout_marginTop="10dp"/>
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_secondary_bg"
+            android:layout_marginTop="12dp"/>
 
         <Button
             android:id="@+id/accessibilityBtn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="OPEN ACCESSIBILITY SETTINGS"
-            android:textSize="13sp"
-            android:layout_marginTop="6dp"/>
+            android:layout_height="48dp"
+            android:text="ENABLE MT5 DETECTION (Accessibility)"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_teal_bg"
+            android:layout_marginTop="8dp"/>
 
-        <TextView
-            android:id="@+id/statusText"
-            android:layout_width="match_parent"
-            android:layout_height="140dp"
-            android:layout_marginTop="24dp"
-            android:text="HOLD"
-            android:textSize="42sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:background="#9E9E9E"
-            android:textColor="#FFFFFF"/>
-
-        <TextView
-            android:id="@+id/confidenceText"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="Confidence: —"
-            android:textSize="15sp"
-            android:gravity="center"/>
+            android:orientation="vertical"
+            android:background="@drawable/card_signal_bg"
+            android:padding="16dp"
+            android:layout_marginTop="16dp">
 
-        <TextView
-            android:id="@+id/ruleText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text=""
-            android:textSize="13sp"
-            android:gravity="center"
-            android:textColor="#666666"/>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="LIVE SIGNAL"
+                android:textSize="11sp"
+                android:textColor="@color/aegis_gold"
+                android:letterSpacing="0.15"
+                android:gravity="center"/>
 
-        <TextView
-            android:id="@+id/detailsText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Waiting for Brain..."
-            android:textSize="15sp"
-            android:gravity="center"/>
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="HOLD"
+                android:textSize="36sp"
+                android:textStyle="bold"
+                android:textColor="@color/aegis_text"
+                android:gravity="center"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/confidenceText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Confidence: —"
+                android:textSize="14sp"
+                android:textColor="@color/aegis_teal"
+                android:gravity="center"/>
+
+            <TextView
+                android:id="@+id/ruleText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Rule: —"
+                android:textSize="13sp"
+                android:textColor="@color/aegis_muted"
+                android:gravity="center"
+                android:layout_marginTop="4dp"/>
+
+            <TextView
+                android:id="@+id/detailsText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Waiting for Brain..."
+                android:textSize="14sp"
+                android:textColor="@color/aegis_text"
+                android:gravity="center"/>
+        </LinearLayout>
 
         <TextView
             android:id="@+id/healthText"
@@ -120,15 +161,16 @@
             android:text="Not started"
             android:textSize="13sp"
             android:gravity="center"
-            android:textColor="#888888"/>
+            android:textColor="@color/aegis_muted"/>
 
         <TextView
             android:id="@+id/diagText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:padding="10dp"
-            android:background="#ECEFF1"
+            android:padding="12dp"
+            android:background="@drawable/card_diag_bg"
+            android:textColor="@color/aegis_teal"
             android:textSize="12sp"
             android:fontFamily="monospace"
             android:text="Backend Reachable: —\nLast Upload: —\nLast HTTP Code: —\nLast Upload Time: —\nCached Screenshots: 0\nMT5 Foreground: —"/>
@@ -136,38 +178,49 @@
         <Button
             android:id="@+id/batteryBtn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="ALLOW BACKGROUND RUNNING (recommended)"
+            android:layout_height="48dp"
+            android:text="ALLOW BACKGROUND RUNNING"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_orange_bg"
             android:layout_marginTop="16dp"/>
 
         <Button
             android:id="@+id/indicatorSetupBtn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:text="INSTALL / UPDATE INDICATOR TEMPLATE"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_purple_bg"
             android:layout_marginTop="8dp"/>
 
         <Button
             android:id="@+id/minimizeBtn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:text="MINIMIZE (keep capture running)"
             android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_secondary_bg"
             android:layout_marginTop="8dp"/>
 
         <Button
             android:id="@+id/floatHudBtn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="FLOATING HUD (minimize / drag)"
+            android:layout_height="48dp"
+            android:text="FLOATING HUD (drag overlay)"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_teal_bg"
             android:layout_marginTop="8dp"/>
 
         <Button
             android:id="@+id/connectMt5Btn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:text="CONNECT MT5 TO BACKEND"
-            android:layout_marginTop="8dp"/>
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_secondary_bg"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="24dp"/>
 
     </LinearLayout>
 </ScrollView>

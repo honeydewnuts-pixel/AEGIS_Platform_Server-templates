@@ -83,6 +83,9 @@ class MainActivity : AppCompatActivity() {
         runningStateText = findViewById(R.id.runningStateText)
         startBtn = findViewById(R.id.startBtn)
         stopBtn = findViewById(R.id.stopBtn)
+        // Keep custom green/red drawables (Material theme would otherwise tint them)
+        startBtn.backgroundTintList = null
+        stopBtn.backgroundTintList = null
         settingsBtn = findViewById(R.id.settingsBtn)
         batteryBtn = findViewById(R.id.batteryBtn)
         accessibilityBtn = findViewById(R.id.accessibilityBtn)
