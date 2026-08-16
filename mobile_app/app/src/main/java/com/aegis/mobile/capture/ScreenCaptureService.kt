@@ -140,6 +140,22 @@ class ScreenCaptureService : Service() {
         return START_NOT_STICKY
     }
 
+    private fun acquireServiceWakeLock() {
+        try {
+            if (wakeLock == null) {
+                wakeLock = powerManager.newWakeLock(
+                    PowerManager.PARTIAL_WAKE_LOCK,
+                    "AEGIS::ServiceAlive"
+                )
+            }
+            if (wakeLock?.isHeld != true) {
+                @Suppress("DEPRECATION")
+                wakeLock?.acquire()
+            }
+        } catch (_: Exception) {
+        }
+    }
+
     private fun stopCaptureSession() {
         handler.removeCallbacks(captureRunnable)
         handler.removeCallbacks(heartbeatRunnable)

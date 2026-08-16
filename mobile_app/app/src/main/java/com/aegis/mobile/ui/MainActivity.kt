@@ -308,6 +308,31 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
      * so MediaProjection records the chart (not this UI).
      * Some OEMs ignore moveTaskToBack alone — HOME + explicit MT5 launch is more reliable.
      */
+
+    private fun ensureOverlayThenOperatorMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            Toast.makeText(
+                this,
+                "Allow display over other apps — required for the small AEGIS panel on MT5",
+                Toast.LENGTH_LONG
+            ).show()
+            startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+            )
+            return
+        }
+        try {
+            startService(Intent(this, FloatingHudService::class.java).apply {
+                action = FloatingHudService.ACTION_SHOW
+            })
+        } catch (_: Exception) {
+        }
+        window.decorView.postDelayed({ minimizeApp() }, 400)
+    }
+
     private fun minimizeApp() {
         val mt5Launched = tryLaunchMt5()
         // Go to home / leave this task so we are not covering MT5.
