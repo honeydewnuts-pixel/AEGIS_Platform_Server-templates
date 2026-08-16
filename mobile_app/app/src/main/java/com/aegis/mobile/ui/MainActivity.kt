@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -50,6 +51,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var floatHudBtn: Button
     private lateinit var minimizeBtn: Button
     private lateinit var reportIssueBtn: Button
+    private lateinit var previewImage: ImageView
+    private lateinit var previewPlaceholder: TextView
     private lateinit var indicatorSetupBtn: Button
 
     private var captureRunning = false
@@ -95,6 +98,8 @@ class MainActivity : AppCompatActivity() {
         floatHudBtn = findViewById(R.id.floatHudBtn)
         minimizeBtn = findViewById(R.id.minimizeBtn)
         reportIssueBtn = findViewById(R.id.reportIssueBtn)
+        previewImage = findViewById(R.id.previewImage)
+        previewPlaceholder = findViewById(R.id.previewPlaceholder)
         indicatorSetupBtn = findViewById(R.id.indicatorSetupBtn)
 
         // High-contrast text on dark background (theme alone is not always enough)
@@ -218,6 +223,14 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
         }
         HealthStatus.lastCaptureTimeMs.observe(this) { refreshHealth() }
         HealthStatus.consecutiveFailures.observe(this) { refreshHealth() }
+        
+        HealthStatus.lastPreviewBitmap.observe(this) { bmp ->
+            if (bmp != null) {
+                previewImage.setImageBitmap(bmp)
+                previewPlaceholder.visibility = android.view.View.GONE
+            }
+        }
+
         HealthStatus.mediaProjectionActive.observe(this) { active ->
             setCaptureRunning(active == true)
             refreshHealth()

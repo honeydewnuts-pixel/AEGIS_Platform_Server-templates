@@ -1,5 +1,6 @@
 package com.aegis.mobile.data
 
+import android.graphics.Bitmap
 import androidx.lifecycle.MutableLiveData
 import java.util.ArrayDeque
 
@@ -19,6 +20,10 @@ object HealthStatus {
     val lastUploadStatus = MutableLiveData<String>("—")
     val lastUploadTimeMs = MutableLiveData<Long>(0L)
     val mt5Foreground = MutableLiveData<Boolean>(false)
+
+    /** Downscaled last frame for UI "streaming" preview (main thread safe via LiveData). */
+    val lastPreviewBitmap = MutableLiveData<Bitmap?>(null)
+    val lastPreviewTimeMs = MutableLiveData<Long>(0L)
 
     /** Rolling local history (newest first), max 100. */
     data class UploadRecord(
@@ -91,5 +96,18 @@ object HealthStatus {
         val vals = historySnapshot().take(n).mapNotNull { it.latencyMs }
         if (vals.isEmpty()) return null
         return vals.average().toLong()
+    }
+
+    fun publishPreview(source: Bitmap) {
+        try {
+            val maxW = 720
+            val scale = if (source.width > maxW) maxW.toFloat() / source.width else 1f
+            val w = (source.width * scale).toInt().coerceAtLeast(1)
+            val h = (source.height * scale).toInt().coerceAtLeast(1)
+            val copy = Bitmap.createScaledBitmap(source, w, h, true)
+            lastPreviewBitmap.postValue(copy)
+            lastPreviewTimeMs.postValue(System.currentTimeMillis())
+        } catch (_: Exception) {
+        }
     }
 }

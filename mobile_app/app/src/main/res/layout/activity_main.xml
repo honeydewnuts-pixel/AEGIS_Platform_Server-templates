@@ -1,27 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@color/aegis_bg">
+    android:clipToPadding="false"
+    android:background="@color/aegis_bg"
+    android:paddingBottom="32dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp"
+        android:padding="16dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:gravity="center_horizontal">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="AEGIS"
-            android:textSize="26sp"
+            android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="@color/aegis_gold"
             android:gravity="center"
-            android:letterSpacing="0.12"
-            android:layout_marginBottom="2dp"/>
+            android:letterSpacing="0.12"/>
 
         <TextView
             android:layout_width="match_parent"
@@ -30,7 +34,7 @@
             android:textSize="12sp"
             android:textColor="@color/aegis_teal"
             android:gravity="center"
-            android:layout_marginBottom="10dp"/>
+            android:layout_marginBottom="8dp"/>
 
         <TextView
             android:id="@+id/runningStateText"
@@ -40,14 +44,16 @@
             android:textSize="14sp"
             android:gravity="center"
             android:textColor="@color/aegis_muted"
-            android:layout_marginBottom="14dp"/>
+            android:layout_marginBottom="10dp"/>
 
+        <!-- Start / Stop — AppCompat-friendly: zero Material insets so labels are not clipped -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:clipChildren="false">
 
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/startBtn"
                 android:layout_width="0dp"
                 android:layout_height="56dp"
@@ -57,50 +63,87 @@
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
                 android:background="@drawable/btn_start_bg"
-                android:padding="14dp"/>
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:stateListAnimator="@null"
+                android:elevation="0dp"/>
 
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/stopBtn"
                 android:layout_width="0dp"
                 android:layout_height="56dp"
                 android:layout_weight="1"
+                android:layout_marginStart="10dp"
                 android:text="STOP"
                 android:textSize="17sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
                 android:background="@drawable/btn_stop_bg"
-                android:padding="14dp"
-                android:layout_marginStart="10dp"
-                android:enabled="false"/>
+                android:enabled="false"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:stateListAnimator="@null"
+                android:elevation="0dp"/>
         </LinearLayout>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/settingsBtn"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_marginTop="10dp"
             android:text="SETTINGS"
             android:textSize="15sp"
             android:textColor="#FFFFFF"
             android:background="@drawable/btn_secondary_bg"
-            android:layout_marginTop="12dp"/>
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:stateListAnimator="@null"/>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/accessibilityBtn"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="ENABLE MT5 DETECTION (Accessibility)"
+            android:layout_marginTop="8dp"
+            android:text="ENABLE MT5 DETECTION"
             android:textSize="14sp"
             android:textColor="#FFFFFF"
             android:background="@drawable/btn_teal_bg"
-            android:layout_marginTop="8dp"/>
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:stateListAnimator="@null"/>
+
+        <!-- Live capture preview (last frame) -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/card_signal_bg">
+
+            <ImageView
+                android:id="@+id/previewImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="Last captured screenshot"/>
+
+            <TextView
+                android:id="@+id/previewPlaceholder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="Live capture preview\n(appears after START)"
+                android:textColor="@color/aegis_muted"
+                android:textSize="13sp"
+                android:background="#990B1220"/>
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@drawable/card_signal_bg"
-            android:padding="16dp"
-            android:layout_marginTop="16dp">
+            android:padding="14dp"
+            android:layout_marginTop="10dp">
 
             <TextView
                 android:layout_width="match_parent"
@@ -116,12 +159,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="HOLD"
-                android:textSize="36sp"
+                android:textSize="32sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
                 android:gravity="center"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"/>
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"/>
 
             <TextView
                 android:id="@+id/confidenceText"
@@ -146,7 +189,7 @@
                 android:id="@+id/detailsText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="8dp"
                 android:text="Waiting for Brain..."
                 android:textSize="14sp"
                 android:textColor="@color/aegis_text"
@@ -157,7 +200,7 @@
             android:id="@+id/healthText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:text="Not started"
             android:textSize="13sp"
             android:gravity="center"
@@ -167,7 +210,7 @@
             android:id="@+id/diagText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="8dp"
             android:padding="12dp"
             android:background="@drawable/card_diag_bg"
             android:textColor="@color/aegis_teal"
@@ -175,61 +218,79 @@
             android:fontFamily="monospace"
             android:text="Backend Reachable: —\nLast Upload: —\nLast HTTP Code: —\nLast Upload Time: —\nCached Screenshots: 0\nMT5 Foreground: —"/>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/batteryBtn"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_marginTop="14dp"
             android:text="ALLOW BACKGROUND RUNNING"
             android:textColor="#FFFFFF"
             android:background="@drawable/btn_orange_bg"
-            android:layout_marginTop="16dp"/>
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:stateListAnimator="@null"/>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/indicatorSetupBtn"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_marginTop="8dp"
             android:text="INSTALL / UPDATE INDICATOR TEMPLATE"
             android:textColor="#FFFFFF"
             android:background="@drawable/btn_purple_bg"
-            android:layout_marginTop="8dp"/>
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:stateListAnimator="@null"/>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/minimizeBtn"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_marginTop="8dp"
             android:text="MINIMIZE + OPEN MT5"
             android:textSize="14sp"
             android:textColor="#FFFFFF"
             android:background="@drawable/btn_secondary_bg"
-            android:layout_marginTop="8dp"/>
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:stateListAnimator="@null"/>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/floatHudBtn"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_marginTop="8dp"
             android:text="FLOATING HUD (drag overlay)"
             android:textColor="#FFFFFF"
             android:background="@drawable/btn_teal_bg"
-            android:layout_marginTop="8dp"/>
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:stateListAnimator="@null"/>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/reportIssueBtn"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_marginTop="8dp"
             android:text="REPORT ISSUE"
             android:textColor="#FFFFFF"
             android:background="@drawable/btn_orange_bg"
-            android:layout_marginTop="8dp"/>
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:stateListAnimator="@null"/>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/connectMt5Btn"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="40dp"
             android:text="CONNECT MT5 TO BACKEND"
             android:textColor="#FFFFFF"
             android:background="@drawable/btn_secondary_bg"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="24dp"/>
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:stateListAnimator="@null"/>
 
     </LinearLayout>
 </ScrollView>

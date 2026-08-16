@@ -301,6 +301,7 @@ class ScreenCaptureService : Service() {
             image.close()
 
             val croppedBitmap = applyRoiCrop(bitmap)
+            HealthStatus.publishPreview(croppedBitmap)
 
             scope.launch {
                 val accountId = resolveAccountId()
