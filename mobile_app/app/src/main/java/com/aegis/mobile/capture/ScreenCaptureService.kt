@@ -57,8 +57,8 @@ class ScreenCaptureService : Service() {
     // fetched - safe fallback if the config endpoint is unreachable, since
     // sending too much is a bandwidth cost, sending too little could crop
     // off real chart data the brain needs.
-    @Volatile private var captureTopPercent: Float = 0.0f
-    @Volatile private var captureBottomPercent: Float = 1.0f
+    @Volatile private var captureTopPercent: Float = 0.06f
+    @Volatile private var captureBottomPercent: Float = 0.88f
 
     companion object {
         const val EXTRA_RESULT_CODE = "result_code"
@@ -133,7 +133,8 @@ class ScreenCaptureService : Service() {
         handler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL)
         handler.postDelayed(cacheDrainRunnable, CACHE_DRAIN_INTERVAL)
         handler.postDelayed(roiRefreshRunnable, ROI_REFRESH_INTERVAL)
-        updateNotification("Capturing MT5 screenshots")
+        updateNotification("Capturing MT5 chart region")
+        acquireServiceWakeLock()
         // NOT sticky: prevents auto-restart without a valid projection token (which
         // made Stop appear to "restart" capture and left the UI inconsistent).
         return START_NOT_STICKY
@@ -268,16 +269,21 @@ class ScreenCaptureService : Service() {
     }
 
     private fun captureAndSend() {
-        // Always capture while START is active. MediaProjection records the
-        // *current* display only — Android cannot snapshot an app that is not
-        // visible. Keep MT5 open full-screen (AEGIS minimized) for chart frames.
-        // Accessibility still reports whether MT5 is in front (diagnostics only).
         val mt5Fg = com.aegis.mobile.automation.Mt5AccessibilityService.isMt5Foreground
         HealthStatus.mt5Foreground.postValue(mt5Fg)
         updateNotification(
-            if (mt5Fg) "Capturing (MT5 in front)"
-            else "Capturing screen — open MT5 full-screen for chart frames"
+            if (mt5Fg) "Capturing MT5 chart region"
+            else "Capturing chart ROI — keep MT5 visible under HUD"
         )
+
+        // Hide operator overlay so it is not painted into the frame sent to the brain.
+        try {
+            startService(Intent(this, com.aegis.mobile.ui.FloatingHudService::class.java).apply {
+                action = com.aegis.mobile.ui.FloatingHudService.ACTION_CAPTURE_HIDE
+            })
+            Thread.sleep(40)
+        } catch (_: Exception) {
+        }
 
         withBriefWakeLock {
             val image = imageReader?.acquireLatestImage()
@@ -322,6 +328,12 @@ class ScreenCaptureService : Service() {
                 }
                 tempFile.delete()
             }
+        }
+        try {
+            startService(Intent(this, com.aegis.mobile.ui.FloatingHudService::class.java).apply {
+                action = com.aegis.mobile.ui.FloatingHudService.ACTION_CAPTURE_SHOW
+            })
+        } catch (_: Exception) {
         }
     }
 
@@ -371,7 +383,10 @@ class ScreenCaptureService : Service() {
             if (response.isSuccessful) {
                 val result: AnalysisResponse? = response.body()
                 Log.d("AEGIS", "Brain Response: ${result?.signal} - ${result?.confidence}")
-                result?.let { SignalRepository.latestResult.postValue(it) }
+                result?.let {
+                    SignalRepository.latestResult.postValue(it)
+                    SignalRepository.latestSignal.postValue(it.signal)
+                }
                 HealthStatus.recordCaptureSuccess(httpCode = response.code(), latencyMs = System.currentTimeMillis() - t0)
                 val pending = cacheManager.pendingCount()
                 val suffix = if (pending > 0) " ($pending queued)" else ""

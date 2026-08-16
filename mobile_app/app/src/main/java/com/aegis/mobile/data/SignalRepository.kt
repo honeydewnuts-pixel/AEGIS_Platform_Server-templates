@@ -10,6 +10,7 @@ import com.aegis.mobile.models.AnalysisResponse
  */
 object SignalRepository {
     val latestResult = MutableLiveData<AnalysisResponse>()
+    val latestSignal = MutableLiveData<String>("HOLD")
 
     // Tracks the last time a trade was actually executed, so we can enforce a cooldown
     // and avoid firing a new trade every single capture cycle (every 3s) on a persistent signal.

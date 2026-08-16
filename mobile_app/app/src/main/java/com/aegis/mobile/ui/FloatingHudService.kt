@@ -1,32 +1,45 @@
 package com.aegis.mobile.ui
 
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.util.DisplayMetrics
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.aegis.mobile.data.HealthStatus
 import com.aegis.mobile.data.SignalRepository
 
 /**
- * Draggable floating bubble that can expand to show signal + diagnostics.
- * Requires SYSTEM_ALERT_WINDOW (Settings → Display over other apps).
+ * Quarter-screen draggable operator panel.
+ * Sits over MT5 so the main AEGIS activity can leave the foreground.
+ * Hidden for a few ms around each capture so MediaProjection does not
+ * photograph this overlay instead of the chart.
  */
 class FloatingHudService : Service() {
 
     private var windowManager: WindowManager? = null
-    private var bubble: LinearLayout? = null
-    private var expanded = false
+    private var root: LinearLayout? = null
     private lateinit var params: WindowManager.LayoutParams
     private lateinit var titleView: TextView
-    private lateinit var detailView: TextView
+    private lateinit var signalView: TextView
+    private lateinit var statusView: TextView
+    private lateinit var preview: ImageView
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var dragDx = 0
+    private var dragDy = 0
+    private var moving = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -36,18 +49,32 @@ class FloatingHudService : Service() {
                 stopSelf()
                 return START_NOT_STICKY
             }
+            ACTION_CAPTURE_HIDE -> {
+                setPanelVisible(false)
+            }
+            ACTION_CAPTURE_SHOW -> {
+                setPanelVisible(true)
+            }
             else -> {
-                // SHOW or null — ensure bubble exists (onCreate already built it)
                 isRunning = true
+                setPanelVisible(true)
             }
         }
         return START_STICKY
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate() {
         isRunning = true
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+
+        val metrics = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        windowManager!!.defaultDisplay.getMetrics(metrics)
+        val panelW = (metrics.widthPixels * 0.42f).toInt().coerceIn(280, 480)
+        val panelH = (metrics.heightPixels * 0.38f).toInt().coerceIn(320, 560)
+
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         else
@@ -55,140 +82,159 @@ class FloatingHudService : Service() {
             WindowManager.LayoutParams.TYPE_PHONE
 
         params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            panelW,
+            panelH,
             type,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.TOP or Gravity.START
-        params.x = 40
-        params.y = 200
+        params.x = 24
+        params.y = metrics.heightPixels / 10
 
-        bubble = LinearLayout(this).apply {
+        root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(28, 20, 28, 20)
-            setBackgroundColor(Color.parseColor("#CC1B2838"))
-            elevation = 12f
+            setPadding(16, 14, 16, 14)
+            setBackgroundColor(Color.parseColor("#E6111828"))
+            elevation = 16f
         }
 
         titleView = TextView(this).apply {
-            text = "AEGIS · HOLD"
+            text = "AEGIS · drag to move"
+            setTextColor(Color.parseColor("#F0D78C"))
+            textSize = 12f
+            setPadding(0, 0, 0, 8)
+        }
+
+        val previewFrame = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1.2f
+            )
+            setBackgroundColor(Color.parseColor("#0B1220"))
+        }
+        preview = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+        previewFrame.addView(preview)
+
+        signalView = TextView(this).apply {
+            text = "SIGNAL: —"
             setTextColor(Color.WHITE)
-            textSize = 14f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            textSize = 18f
+            setPadding(0, 10, 0, 4)
         }
-        detailView = TextView(this).apply {
-            text = "Tap to expand"
-            setTextColor(Color.parseColor("#AABBCC"))
+        statusView = TextView(this).apply {
+            text = "Tap START in app, then leave this panel over MT5"
+            setTextColor(Color.parseColor("#5EEAD4"))
             textSize = 11f
-            visibility = View.GONE
         }
-        bubble!!.addView(titleView)
-        bubble!!.addView(detailView)
 
-        var downX = 0f
-        var downY = 0f
-        var paramX = 0
-        var paramY = 0
-        var moved = false
+        root!!.addView(titleView)
+        root!!.addView(previewFrame)
+        root!!.addView(signalView)
+        root!!.addView(statusView)
 
-        bubble!!.setOnTouchListener { _, e ->
-            when (e.action) {
+        root!!.setOnTouchListener { _, event ->
+            when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    downX = e.rawX
-                    downY = e.rawY
-                    paramX = params.x
-                    paramY = params.y
-                    moved = false
+                    dragDx = event.rawX.toInt() - params.x
+                    dragDy = event.rawY.toInt() - params.y
+                    moving = false
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = (e.rawX - downX).toInt()
-                    val dy = (e.rawY - downY).toInt()
-                    if (kotlin.math.abs(dx) > 8 || kotlin.math.abs(dy) > 8) moved = true
-                    params.x = paramX + dx
-                    params.y = paramY + dy
-                    windowManager?.updateViewLayout(bubble, params)
+                    val nx = event.rawX.toInt() - dragDx
+                    val ny = event.rawY.toInt() - dragDy
+                    if (kotlin.math.abs(nx - params.x) > 4 || kotlin.math.abs(ny - params.y) > 4) {
+                        moving = true
+                    }
+                    // END gravity: x is offset from the right edge
+                    params.x = nx.coerceAtLeast(0)
+                    params.y = ny.coerceAtLeast(0)
+                    try {
+                        windowManager?.updateViewLayout(root, params)
+                    } catch (_: Exception) {
+                    }
                     true
                 }
-                MotionEvent.ACTION_UP -> {
-                    if (!moved) toggleExpand()
-                    true
-                }
+                MotionEvent.ACTION_UP -> true
                 else -> false
             }
         }
 
-        windowManager?.addView(bubble, params)
-
-        SignalRepository.latestResult.observeForever { res ->
-            val sig = res?.signal ?: "HOLD"
-            val conf = res?.confidence ?: 0f
-            titleView.text = "AEGIS · $sig"
-            titleView.setTextColor(
-                when (sig) {
-                    "BUY" -> Color.parseColor("#3FB950")
-                    "SELL" -> Color.parseColor("#F85149")
-                    else -> Color.WHITE
-                }
-            )
-            if (expanded) refreshDetail(sig, conf)
+        try {
+            windowManager?.addView(root, params)
+        } catch (e: Exception) {
+            stopSelf()
+            return
         }
-        HealthStatus.lastUploadStatus.observeForever {
-            if (expanded) {
-                val conf = SignalRepository.latestResult.value?.confidence ?: 0f
-                val sig = SignalRepository.latestResult.value?.signal ?: "HOLD"
-                refreshDetail(sig, conf)
-            }
+
+        // Observe preview + signal on main thread
+        mainHandler.post {
+            HealthStatus.lastPreviewBitmap.observeForever(previewObserver)
+            SignalRepository.latestSignal.observeForever(signalObserver)
+            HealthStatus.lastUploadStatus.observeForever(statusObserver)
+            HealthStatus.mediaProjectionActive.observeForever(runningObserver)
         }
     }
 
-    private fun toggleExpand() {
-        expanded = !expanded
-        detailView.visibility = if (expanded) View.VISIBLE else View.GONE
-        if (expanded) {
-            val conf = SignalRepository.latestResult.value?.confidence ?: 0f
-            val sig = SignalRepository.latestResult.value?.signal ?: "HOLD"
-            refreshDetail(sig, conf)
-        } else {
-            detailView.text = "Tap to expand"
+    private val previewObserver = androidx.lifecycle.Observer<android.graphics.Bitmap?> { bmp ->
+        if (bmp != null) preview.setImageBitmap(bmp)
+    }
+    private val signalObserver = androidx.lifecycle.Observer<String> { sig ->
+        signalView.text = "SIGNAL: ${sig ?: "—"}"
+        when (sig) {
+            "BUY" -> signalView.setTextColor(Color.parseColor("#4ADE80"))
+            "SELL" -> signalView.setTextColor(Color.parseColor("#F87171"))
+            else -> signalView.setTextColor(Color.WHITE)
         }
     }
+    private val statusObserver = androidx.lifecycle.Observer<String> { st ->
+        statusView.text = "Upload: ${st ?: "—"}"
+    }
+    private val runningObserver = androidx.lifecycle.Observer<Boolean> { on ->
+        titleView.text = if (on == true) "AEGIS · capturing · drag" else "AEGIS · idle · drag"
+    }
 
-    private fun refreshDetail(sig: String, conf: Float) {
-        val reach = when (HealthStatus.backendReachable.value) {
-            true -> "YES"
-            false -> "NO"
-            null -> "—"
+    private fun setPanelVisible(visible: Boolean) {
+        mainHandler.post {
+            root?.visibility = if (visible) View.VISIBLE else View.INVISIBLE
         }
-        val http = HealthStatus.lastHttpCode.value?.toString() ?: "—"
-        val status = HealthStatus.lastUploadStatus.value ?: "—"
-        val cache = HealthStatus.pendingCacheCount.value ?: 0
-        detailView.text = "Conf ${"%.0f".format(conf * 100)}%\n" +
-            "Upload: $status · HTTP $http\n" +
-            "Backend: $reach · Cache: $cache\n" +
-            "(drag to move · tap to minimize)"
     }
 
     override fun onDestroy() {
         isRunning = false
         try {
-            if (bubble != null) {
-                windowManager?.removeView(bubble)
-                bubble = null
-            }
+            HealthStatus.lastPreviewBitmap.removeObserver(previewObserver)
+            SignalRepository.latestSignal.removeObserver(signalObserver)
+            HealthStatus.lastUploadStatus.removeObserver(statusObserver)
+            HealthStatus.mediaProjectionActive.removeObserver(runningObserver)
         } catch (_: Exception) {
         }
+        try {
+            if (root != null) windowManager?.removeView(root)
+        } catch (_: Exception) {
+        }
+        root = null
         super.onDestroy()
     }
 
     companion object {
-        @Volatile
         @JvmField
+        @Volatile
         var isRunning: Boolean = false
 
         const val ACTION_SHOW = "com.aegis.mobile.HUD_SHOW"
         const val ACTION_HIDE = "com.aegis.mobile.HUD_HIDE"
+        const val ACTION_CAPTURE_HIDE = "com.aegis.mobile.HUD_CAPTURE_HIDE"
+        const val ACTION_CAPTURE_SHOW = "com.aegis.mobile.HUD_CAPTURE_SHOW"
     }
 }

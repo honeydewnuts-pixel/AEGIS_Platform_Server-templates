@@ -67,8 +67,14 @@ class MainActivity : AppCompatActivity() {
             }
             startForegroundService(serviceIntent)
             setCaptureRunning(true)
-            Toast.makeText(this, "AEGIS Started", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                "Capturing chart ROI. Operator panel will float over MT5.",
+                Toast.LENGTH_LONG
+            ).show()
             maybePromptBatteryExemption()
+            // Critical: leave the fullscreen AEGIS UI so MediaProjection sees MT5, not this activity.
+            ensureOverlayThenOperatorMode()
         } else {
             Toast.makeText(this, "Screen capture permission denied", Toast.LENGTH_SHORT).show()
             setCaptureRunning(false)
