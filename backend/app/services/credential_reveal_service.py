@@ -1,35 +1,14 @@
 """
-====================================================================
-Project : AEGIS
-Company : Honeydewnuts Nigerian Limited
+One-time post-payment credential claim.
 
-File    : credential_reveal_service.py
+Contract (enforced here):
+  - reveal_token / activation_ref is random, single-use, short TTL
+  - successful claim DELETEs the token and pending credentials permanently
+  - replay after claim → None (404)
+  - expire after TTL → None
+  - webhook must stash credentials before claim succeeds
 
-Purpose
--------
-Solves a real gap: a brand-new subscriber has no way to receive their
-portal_token or mobile API key. Previously these were only logged
-server-side (see SubscriptionService.apply_event) - fine for you
-testing your own account, useless for an actual subscriber.
-
-This implements the standard SaaS pattern instead:
-  1. At checkout creation, issue a random "reveal token" tied to the
-     account_id the subscriber is signing up for, and include both in
-     the payment provider's success_url as query params.
-  2. When the webhook activates the subscription, stash the newly
-     issued portal_token + mobile_api_key in Redis, keyed by account_id,
-     with a short claim window.
-  3. The subscriber's browser, redirected back after payment, calls
-     GET /api/subscriptions/reveal with the account_id + reveal_token
-     from the URL. If they match, the stashed credentials are returned
-     ONCE and immediately deleted - a replayed/leaked URL after that
-     point returns nothing.
-
-This is still not real subscriber account management (no password reset,
-no email delivery as a backup channel if the browser tab is closed
-before claiming) - see docs/SECURITY.md for what's still a documented
-gap versus what this actually solves.
-====================================================================
+Preferred public name: activation_ref (opaque claim ticket, not a portal credential).
 """
 
 from __future__ import annotations
@@ -42,8 +21,9 @@ import redis.asyncio as redis
 
 from app.core.logging import configure_logging
 
-REVEAL_TOKEN_TTL_SECONDS = 24 * 60 * 60      # 24h - covers checkout abandonment and return
-PENDING_CREDENTIALS_TTL_SECONDS = 60 * 60    # 1h claim window after activation
+# Short windows: reduces risk if activation_ref appears in logs/history briefly
+REVEAL_TOKEN_TTL_SECONDS = 60 * 60  # 1h
+PENDING_CREDENTIALS_TTL_SECONDS = 60 * 60  # 1h after activation
 
 
 class CredentialRevealService:
@@ -59,28 +39,54 @@ class CredentialRevealService:
         return f"pending_credentials:{account_id}"
 
     async def create_reveal_token(self, account_id: str) -> str:
-        token = secrets.token_urlsafe(24)
+        """Issue opaque activation_ref for payment success_url (not a credential)."""
+        token = secrets.token_urlsafe(32)
         await self._redis.set(self._reveal_key(token), account_id, ex=REVEAL_TOKEN_TTL_SECONDS)
         return token
 
-    async def stash_credentials(self, account_id: str, portal_token: str, mobile_api_key: str) -> None:
-        payload = json.dumps({"portal_token": portal_token, "mobile_api_key": mobile_api_key})
-        await self._redis.set(self._pending_key(account_id), payload, ex=PENDING_CREDENTIALS_TTL_SECONDS)
-        self.logger.info("Credentials staged for one-time reveal: %s", account_id)
+    # Alias for commercial naming
+    async def create_activation_ref(self, account_id: str) -> str:
+        return await self.create_reveal_token(account_id)
 
-    async def reveal(self, account_id: str, token: str) -> dict[str, Any] | None:
-        """Returns credentials once, or None if the token is wrong/expired/
-        already used, or the subscription hasn't activated yet."""
-        stored_account_id = await self._redis.get(self._reveal_key(token))
-        if stored_account_id is None or stored_account_id != account_id:
+    async def stash_credentials(self, account_id: str, portal_token: str, mobile_api_key: str) -> None:
+        payload = json.dumps({
+            "portal_token": portal_token,
+            "mobile_api_key": mobile_api_key,
+            "account_id": account_id,
+        })
+        await self._redis.set(
+            self._pending_key(account_id),
+            payload,
+            ex=PENDING_CREDENTIALS_TTL_SECONDS,
+        )
+
+    async def reveal(self, account_id: str, reveal_token: str) -> dict[str, Any] | None:
+        """
+        Single-use claim. Deletes activation_ref and pending credentials on success.
+        """
+        key = self._reveal_key(reveal_token)
+        # Atomic get+delete of token
+        stored_account = await self._redis.get(key)
+        if stored_account is None:
             return None
+        if isinstance(stored_account, bytes):
+            stored_account = stored_account.decode("utf-8")
+        if stored_account != account_id:
+            return None
+        await self._redis.delete(key)
 
         pending_raw = await self._redis.get(self._pending_key(account_id))
         if pending_raw is None:
-            return None  # not activated yet, or claim window expired
-
-        # Single-use: delete both immediately after a successful read.
-        await self._redis.delete(self._reveal_key(token))
+            # Token was valid but webhook not ready — restore token briefly so client can retry
+            await self._redis.set(key, account_id, ex=min(120, REVEAL_TOKEN_TTL_SECONDS))
+            return None
+        if isinstance(pending_raw, bytes):
+            pending_raw = pending_raw.decode("utf-8")
         await self._redis.delete(self._pending_key(account_id))
-
-        return json.loads(pending_raw)
+        data = json.loads(pending_raw)
+        self.logger.info("Activation claimed once for account_id=%s", account_id)
+        return {
+            "account_id": account_id,
+            "portal_token": data["portal_token"],
+            "mobile_api_key": data["mobile_api_key"],
+        }

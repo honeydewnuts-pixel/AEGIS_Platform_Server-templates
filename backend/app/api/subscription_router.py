@@ -121,6 +121,48 @@ async def receive_webhook(provider: str, request: Request):
     return {"status": "processed"}
 
 
+
+
+@router.post("/claim")
+async def claim_activation(
+    body: dict,
+    credential_reveal=Depends(get_credential_reveal_service),
+):
+    """
+    Preferred claim API: body carries opaque activation_ref + account_id.
+    Same one-time semantics as GET /reveal. Prefer server-to-server / BFF use
+    so activation_ref is not kept in the browser longer than necessary.
+    """
+    account_id = (body.get("account_id") or "").strip()
+    activation_ref = (body.get("activation_ref") or body.get("reveal_token") or "").strip()
+    if not account_id or not activation_ref:
+        raise HTTPException(status_code=400, detail="account_id and activation_ref required")
+    result = await credential_reveal.reveal(account_id, activation_ref)
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Not ready yet, or already claimed. If you just paid, wait a few seconds and retry.",
+        )
+    return result
+
+@router.post("/reveal")
+async def reveal_credentials_post(
+    body: dict,
+    credential_reveal=Depends(get_credential_reveal_service),
+):
+    account_id = (body.get("account_id") or "").strip()
+    reveal_token = (body.get("reveal_token") or body.get("activation_ref") or "").strip()
+    if not account_id or not reveal_token:
+        raise HTTPException(status_code=400, detail="account_id and reveal_token required")
+    result = await credential_reveal.reveal(account_id, reveal_token)
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Not ready yet, or already claimed. If you just paid, wait a few seconds and retry.",
+        )
+    return result
+
+
 @router.get("/reveal")
 async def reveal_credentials(
     account_id: str,
