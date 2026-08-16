@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var connectMt5Btn: Button
     private lateinit var floatHudBtn: Button
     private lateinit var minimizeBtn: Button
+    private lateinit var reportIssueBtn: Button
     private lateinit var indicatorSetupBtn: Button
 
     private var captureRunning = false
@@ -93,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         connectMt5Btn = findViewById(R.id.connectMt5Btn)
         floatHudBtn = findViewById(R.id.floatHudBtn)
         minimizeBtn = findViewById(R.id.minimizeBtn)
+        reportIssueBtn = findViewById(R.id.reportIssueBtn)
         indicatorSetupBtn = findViewById(R.id.indicatorSetupBtn)
 
         // High-contrast text on dark background (theme alone is not always enough)
@@ -238,6 +240,9 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
         connectMt5Btn.setOnClickListener { connectMt5FromPrefs() }
         floatHudBtn.setOnClickListener { toggleFloatingHud() }
         minimizeBtn.setOnClickListener { minimizeApp() }
+        reportIssueBtn.setOnClickListener { reportIssue() }
+        diagText.setOnLongClickListener { reportIssue(); true }
+        healthText.setOnLongClickListener { reportIssue(); true }
         runningStateText.setOnClickListener { minimizeApp() }
         runningStateText.setOnLongClickListener {
             minimizeApp()
@@ -307,6 +312,35 @@ Avg latency (last 20): ${avgLat?.let { "${it}ms" } ?: "—"}
             "AEGIS minimized — open MT5 full-screen for chart captures"
         }
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    }
+
+    
+    private fun reportIssue() {
+        lifecycleScope.launch {
+            try {
+                val prefs = applicationContext.dataStore.data.first()
+                val accountId = prefs[PrefKeys.ACCOUNT_ID] ?: ""
+                val http = HealthStatus.lastHttpCode.value
+                val body = mutableMapOf<String, Any?>(
+                    "account_id" to accountId,
+                    "subject" to "Mobile app issue report",
+                    "message" to (healthText.text?.toString() ?: "No details"),
+                    "last_http_code" to http,
+                    "device_model" to "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+                    "app_version" to "1.0",
+                    "android_version" to android.os.Build.VERSION.RELEASE,
+                )
+                val api = RetrofitClient.getApiService(this@MainActivity)
+                val resp = api.reportIssue(body)
+                if (resp.isSuccessful) {
+                    Toast.makeText(this@MainActivity, "Issue reported (#${resp.body()?.get("ticket_id")})", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this@MainActivity, "Report failed HTTP ${resp.code()}", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "Report failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun tryLaunchMt5(): Boolean {

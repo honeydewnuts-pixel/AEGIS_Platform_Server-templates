@@ -51,5 +51,8 @@ interface ApiService {
 
     @GET("/api/templates/active")
     suspend fun getActiveTemplates(): Response<Map<String, @JvmSuppressWildcards Any>>
-}
 
+    @POST("/api/support/report")
+    suspend fun reportIssue(@Body body: Map<String, @JvmSuppressWildcards Any?>): Response<Map<String, Any>>
+
+}

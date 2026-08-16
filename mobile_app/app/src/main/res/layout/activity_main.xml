@@ -213,6 +213,15 @@
             android:layout_marginTop="8dp"/>
 
         <Button
+            android:id="@+id/reportIssueBtn"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="REPORT ISSUE"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_orange_bg"
+            android:layout_marginTop="8dp"/>
+
+        <Button
             android:id="@+id/connectMt5Btn"
             android:layout_width="match_parent"
             android:layout_height="48dp"

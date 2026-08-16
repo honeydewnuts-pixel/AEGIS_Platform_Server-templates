@@ -45,6 +45,9 @@ from app.api.portal_router import router as portal_router
 from app.api.signal_router import router as signal_router
 from app.api.config_router import router as config_router
 from app.api.template_router import router as template_router
+from app.api.auth_router import router as auth_router
+from app.api.support_router import router as support_router
+from app.api.status_router import router as status_router
 
 logger = configure_logging(__name__)
 
@@ -104,6 +107,9 @@ app.add_middleware(
 # ==========================================================
 
 app.include_router(template_router)
+app.include_router(auth_router)
+app.include_router(support_router)
+app.include_router(status_router)
 app.include_router(base_router)
 app.include_router(upload_router)
 app.include_router(preprocessing_router)

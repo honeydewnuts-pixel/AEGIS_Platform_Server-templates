@@ -109,6 +109,14 @@ async def on_startup(app: FastAPI) -> None:
     app.state.retention_task = asyncio.create_task(_retention_loop())
 
 
+    # Identity / support tables (create_all is idempotent for existing tables)
+    try:
+        from app.services.auth_service import AuthService
+        await AuthService().ensure_tables()
+        logger.info("Auth/support tables ensured")
+    except Exception:
+        logger.exception("Auth table ensure failed")
+
     await _bootstrap_admin_key()
 
     logger.info("Job queue + worker pool manager + indicator history + subscriptions + metrics ready.")
