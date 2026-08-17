@@ -109,3 +109,83 @@ async def portal_trade_quota(
     if limits is None:
         return {"account_id": account_id, "available": False}
     return await limits.status(account_id)
+
+
+@router.post("/mobile-key")
+async def portal_issue_mobile_key(
+    request: Request,
+    account_id: str = Query(...),
+    token: str = Query(...),
+):
+    """
+    Issue (or re-issue) a mobile API key for this account.
+    Raw key returned ONCE. Previous non-admin keys for the account are revoked
+    so only the latest key works on the device.
+    """
+    record = await _authenticate(request, account_id, token)
+    if not record.get("is_active"):
+        raise HTTPException(
+            status_code=402,
+            detail="Subscription is not active. Start a free demo or complete payment first.",
+        )
+
+    from app.security import issue_api_key, revoke_account_keys
+    from app.db.base import async_session_factory
+    from app.db.models import ApiKey
+    from sqlalchemy import select, update
+    from datetime import datetime, timezone
+
+    # Revoke existing non-admin keys for this account
+    async with async_session_factory() as session:
+        rows = (
+            await session.execute(
+                select(ApiKey).where(
+                    ApiKey.account_id == account_id,
+                    ApiKey.is_admin == False,  # noqa: E712
+                    ApiKey.revoked == False,  # noqa: E712
+                )
+            )
+        ).scalars().all()
+        now = datetime.now(timezone.utc)
+        for row in rows:
+            row.revoked = True
+            row.revoked_at = now
+            row.revoked_by = "portal.mobile-key"
+        await session.commit()
+
+    raw = await issue_api_key(
+        account_id=account_id,
+        is_admin=False,
+        label="mobile",
+        issued_by=f"portal:{account_id}",
+    )
+    try:
+        audit = getattr(request.app.state, "audit_service", None)
+        if audit:
+            await audit.record(
+                actor_type="account",
+                actor_id=account_id,
+                action="key.issue",
+                target_type="api_key",
+                account_id=account_id,
+                detail="mobile key issued via portal",
+                success=True,
+            )
+    except Exception:
+        pass
+
+    return {
+        "account_id": account_id,
+        "mobile_api_key": raw,
+        "plan": record.get("plan"),
+        "server_url_hint": "Use your AEGIS API origin (https://…onrender.com) in the mobile app — not the marketing website URL.",
+        "instructions": [
+            "Open AEGIS Mobile → Settings",
+            "Server URL = your AEGIS API HTTPS origin",
+            "Account ID = the account_id below",
+            "API key = the mobile_api_key shown (copy now)",
+            "Save → return to main screen → START with MT5 visible",
+        ],
+        "once": True,
+        "warning": "This key is shown once. Generating again revokes the previous mobile key.",
+    }
